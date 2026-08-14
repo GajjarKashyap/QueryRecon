@@ -12,7 +12,7 @@ export default function Sidebar() {
     { label: 'Operators', icon: Code2, path: '/operators' },
   ];
   return (
-    <div className='w-64 bg-sidebar border-r border-border flex flex-col h-full'>
+    <div className='w-64 bg-sidebar backdrop-blur-xl border-r border-white/5 border-r border-border flex flex-col h-full'>
       <div className='p-6'>
         <h1 className='text-xl font-bold text-primary flex items-center gap-2'>
           <Cpu className='w-6 h-6' /> QueryRecon
@@ -40,6 +40,8 @@ export default function Sidebar() {
     </div>
   );
 }
+
+
 
 
 

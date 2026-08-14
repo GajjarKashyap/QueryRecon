@@ -28,16 +28,15 @@ export const router = createBrowserRouter([
       { path: "sessions", element: <Sessions /> },
       { path: "builder", element: <Builder /> },
       { path: "research-mode", element: <ResearchMode /> },
-      { path: "research/:id", element: <div className="p-8">Research Session (Coming Soon)</div> },
       { path: "templates", element: <Templates /> },
       { path: "saved", element: <SavedQueries /> },
-      { path: "collections", element: <div className="p-8">Collections (Coming Soon)</div> },
       { path: "history", element: <History /> },
       { path: "operators", element: <Operators /> },
       { path: "settings", element: <Settings /> },
     ]
   }
 ])
+
 
 
 
