@@ -1,100 +1,141 @@
-import { useState } from 'react';
-import { Bot, Loader2, Send, X } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, Loader2, RotateCcw, Send, Settings2, Sparkles, X } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
-import { Input } from '../ui/input';
 import { useLocalAssistantStore } from '../../store/localAssistantStore';
 
-interface AssistantMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+const QUICK_ACTIONS = ['Open Research Mode', 'Open Query Builder', 'Explain this page'];
 
 export function LocalAssistant() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const scrollAnchor = useRef<HTMLDivElement>(null);
   const endpoint = useLocalAssistantStore(state => state.endpoint);
   const model = useLocalAssistantStore(state => state.model);
   const runtime = useLocalAssistantStore(state => state.runtime);
   const hermesEndpoint = useLocalAssistantStore(state => state.hermesEndpoint);
   const hermesApiKey = useLocalAssistantStore(state => state.hermesApiKey);
-  const [open, setOpen] = useState(false);
+  const open = useLocalAssistantStore(state => state.isOpen);
+  const messages = useLocalAssistantStore(state => state.messages);
+  const setOpen = useLocalAssistantStore(state => state.setOpen);
+  const addMessage = useLocalAssistantStore(state => state.addMessage);
+  const clearMessages = useLocalAssistantStore(state => state.clearMessages);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState<AssistantMessage[]>([
-    { id: 'welcome', role: 'assistant', content: 'Local assistant ready. Direct Ollama mode can open pages and build reversible queries; Hermes mode provides the tools enabled in your Hermes gateway.' },
-  ]);
 
-  const send = async () => {
-    const prompt = input.trim();
+  useEffect(() => {
+    scrollAnchor.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length, busy]);
+
+  const send = async (value = input) => {
+    const prompt = value.trim();
     if (!prompt || busy) return;
     setInput('');
     setBusy(true);
-    setMessages(current => [...current, { id: crypto.randomUUID(), role: 'user', content: prompt }]);
+    addMessage({ id: crypto.randomUUID(), role: 'user', content: prompt, createdAt: Date.now() });
     try {
       const assistant = await import('../../core/localAssistant');
       const answer = runtime === 'hermes'
         ? await assistant.runHermesAgent(prompt, hermesEndpoint, hermesApiKey, location.pathname)
         : await assistant.runLocalAssistant(prompt, endpoint, model, location.pathname);
-      setMessages(current => [...current, { id: crypto.randomUUID(), role: 'assistant', content: answer }]);
+      addMessage({ id: crypto.randomUUID(), role: 'assistant', content: answer, createdAt: Date.now() });
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unknown local model error';
-      setMessages(current => [...current, {
+      addMessage({
         id: crypto.randomUUID(),
         role: 'assistant',
+        createdAt: Date.now(),
         content: runtime === 'hermes'
-          ? `I could not reach Hermes Agent. Verify that “hermes gateway” is running and check its endpoint, API key, and CORS settings. ${detail}`
-          : `I could not reach MiniCPM5. Open Settings and verify Ollama, the endpoint, and model name. ${detail}`,
-      }]);
+          ? `Hermes is offline. Start “hermes gateway”, then check its endpoint, API key, and CORS settings. ${detail}`
+          : `MiniCPM5 is offline. Start Ollama, then verify the endpoint and model in Settings. ${detail}`,
+      });
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <aside className="fixed bottom-4 right-4 z-50 sm:bottom-5 sm:right-5" aria-label="Local AI assistant">
       {open && (
-        <Card className="mb-3 flex h-[32rem] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden border-primary/30 bg-surface shadow-2xl">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary"><Bot className="h-4 w-4" /></span>
+        <Card className="mb-3 flex h-[min(38rem,calc(100dvh-6.5rem))] w-[min(27rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden border-primary/25 bg-surface-elevated shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+          <header className="flex items-center justify-between border-b border-border/80 px-4 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
+                <Bot className="h-4 w-4" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface-elevated bg-success" />
+              </span>
               <div>
-                <p className="text-sm font-semibold">Local guide</p>
-                <p className="text-[0.65rem] text-muted-foreground">{runtime === 'hermes' ? 'Hermes Agent · local gateway' : `${model} · private via Ollama`}</p>
+                <p className="text-sm font-semibold tracking-tight">{runtime === 'hermes' ? 'Hermes Agent' : 'MiniCPM5 local'}</p>
+                <p className="text-[0.68rem] text-muted-foreground">{runtime === 'hermes' ? 'Tool access follows Hermes settings' : `${model} · private via Ollama`}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setOpen(false)} aria-label="Close local assistant"><X className="h-4 w-4" /></Button>
-          </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon-sm" onClick={() => navigate('/settings')} aria-label="Open assistant settings"><Settings2 /></Button>
+              <Button variant="ghost" size="icon-sm" onClick={clearMessages} aria-label="Clear assistant conversation"><RotateCcw /></Button>
+              <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} aria-label="Close local assistant"><X /></Button>
+            </div>
+          </header>
 
-          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5" aria-live="polite">
             {messages.map(message => (
-              <div key={message.id} className={`max-w-[88%] rounded-lg px-3 py-2 text-sm leading-relaxed ${message.role === 'user' ? 'ml-auto bg-primary text-primary-foreground' : 'bg-background text-foreground'}`}>
-                {message.content}
-              </div>
+              <article key={message.id} className={`flex max-w-[92%] gap-2.5 ${message.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
+                <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[0.6rem] font-bold ${message.role === 'user' ? 'bg-foreground/10 text-foreground' : 'bg-primary/10 text-primary'}`}>
+                  {message.role === 'user' ? 'YOU' : <Sparkles className="h-3 w-3" />}
+                </span>
+                <div className={`rounded-2xl px-3.5 py-2.5 text-sm leading-6 ${message.role === 'user' ? 'rounded-tr-md bg-primary text-primary-foreground' : 'rounded-tl-md border border-border/70 bg-background/80 text-foreground'}`}>
+                  <p className="whitespace-pre-wrap text-pretty">{message.content}</p>
+                  <time className={`mt-1 block text-[0.6rem] tabular-nums ${message.role === 'user' ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>
+                    {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </time>
+                </div>
+              </article>
             ))}
-            {busy && <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {runtime === 'hermes' ? 'Hermes Agent is working…' : 'MiniCPM5 is deciding which safe action to use…'}</div>}
+            {messages.length === 1 && (
+              <div className="grid gap-2 pt-1">
+                {QUICK_ACTIONS.map(action => (
+                  <button key={action} type="button" onClick={() => void send(action)} className="rounded-xl border border-border/70 bg-background/40 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:border-primary/35 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+                    {action}
+                  </button>
+                ))}
+              </div>
+            )}
+            {busy && (
+              <div className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                {runtime === 'hermes' ? 'Hermes is working…' : 'MiniCPM5 is responding locally…'}
+              </div>
+            )}
+            <div ref={scrollAnchor} />
           </div>
 
-          <div className="border-t border-border p-3">
-            <div className="flex gap-2">
-              <Input
+          <footer className="border-t border-border/80 bg-background/25 p-3">
+            <form onSubmit={event => { event.preventDefault(); void send(); }} className="flex items-end gap-2">
+              <textarea
                 value={input}
                 onChange={event => setInput(event.target.value)}
-                onKeyDown={event => event.key === 'Enter' && send()}
-                placeholder={runtime === 'hermes' ? 'Ask Hermes to research or use a tool…' : 'Go to Query Builder and create…'}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    void send();
+                  }
+                }}
+                placeholder={runtime === 'hermes' ? 'Ask Hermes to research or use a tool…' : 'Ask or tell MiniCPM what to open…'}
                 disabled={busy}
+                rows={2}
+                className="min-h-12 max-h-28 flex-1 resize-none rounded-xl border border-border bg-background/80 px-3 py-2.5 text-sm leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/15 disabled:opacity-60"
+                aria-label="Message local assistant"
               />
-              <Button onClick={send} disabled={!input.trim() || busy} aria-label="Send to local assistant"><Send className="h-4 w-4" /></Button>
-            </div>
-            <p className="mt-2 text-[0.65rem] text-muted-foreground">{runtime === 'hermes' ? 'Hermes may use the toolsets enabled in its own configuration. Review its permissions.' : 'Query edits support Undo. External searches and destructive actions are unavailable.'}</p>
-          </div>
+              <Button type="submit" size="icon-lg" className="h-12 w-12 rounded-xl" disabled={!input.trim() || busy} aria-label="Send to local assistant"><Send className="h-4 w-4" /></Button>
+            </form>
+            <p className="mt-2 px-1 text-[0.65rem] text-muted-foreground">Enter to send · Shift+Enter for a new line · chat restores after refresh</p>
+          </footer>
         </Card>
       )}
 
-      <Button onClick={() => setOpen(value => !value)} className="h-12 rounded-full px-4 shadow-lg" aria-label="Open local MiniCPM5 assistant">
+      <Button onClick={() => setOpen(!open)} className="h-12 rounded-xl border border-primary/30 px-4 shadow-[0_12px_40px_rgba(0,0,0,0.4)]" aria-label={open ? 'Close local assistant' : 'Open local assistant'}>
         <Bot className="mr-2 h-5 w-5" /> {runtime === 'hermes' ? 'Hermes' : 'MiniCPM5'}
       </Button>
-    </div>
+    </aside>
   );
 }

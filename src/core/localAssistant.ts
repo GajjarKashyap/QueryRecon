@@ -8,7 +8,7 @@ const APP_ROUTES = {
   board: '/board',
   templates: '/templates',
   saved: '/saved',
-  collections: '/collections',
+  sessions: '/sessions',
   history: '/history',
   operators: '/operators',
   settings: '/settings',
@@ -43,7 +43,7 @@ function inferSafeActions(prompt: string): SafeAction[] {
     ['board', /\b(?:investigation board|crazy wall|board)\b/],
     ['templates', /\btemplates?\b/],
     ['saved', /\bsaved(?: queries)?\b/],
-    ['collections', /\bcollections?\b/],
+    ['sessions', /\b(?:sessions?|collections?)\b/],
     ['history', /\bhistory\b/],
     ['operators', /\boperators?\b/],
     ['settings', /\bsettings?\b/],
@@ -144,7 +144,7 @@ export async function runLocalAssistant(prompt: string, endpoint: string, model:
   const instructions = `You are QueryRecon's private local guide running as MiniCPM5-1B.
 Help the user operate the application. Keep replies concise.
 Current route: ${currentPath}
-Available pages: dashboard, builder, research, board, templates, saved, collections, history, operators, settings.
+Available pages: dashboard, builder, research, board, templates, saved, sessions, history, operators, settings.
 QueryRecon, not you, will decide whether an app action is permitted.
 Never invent completed actions, access files, delete data, or execute web searches. Phrase action replies as an intention; QueryRecon will append verified results.`;
 
