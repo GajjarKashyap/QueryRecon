@@ -52,7 +52,7 @@ flowchart LR
 | Research Mode | Quick, Balanced, and Deep collection modes with parallel source execution and visible source status |
 | Academic Search | Merged OpenAlex, Crossref, and Semantic Scholar results with deduplication, ranking, caching, and partial-failure recovery |
 | AI Analysis | Gemini, OpenAI, and DeepSeek research answers; DeepSeek model discovery and automatic fallback instead of one hard-coded model |
-| AI Court | Parallel Gemini and DeepSeek opinions, optional cross-examination, one final ruling, provider reasoning panels, usage metadata, and persistent case URLs |
+| AI Court | Any two Gemini, DeepSeek, OpenAI, or Claude models, optional cross-examination, custom model IDs, one final ruling, reasoning panels, usage metadata, and persistent case URLs |
 | Rich Answers | Markdown, tables, links, code blocks, safe external images, mathematical notation, and Mermaid-compatible content rendering |
 | Investigation Board | Persistent infinite canvas with findings, notes, links, images, editable tables, labeled connections, zoom, pan, and multiple boards |
 | Research Persistence | Automatic IndexedDB checkpoints after completed sources and restoration after navigation or refresh |
@@ -164,7 +164,7 @@ Provider model names are not assumed to exist forever. DeepSeek queries the mode
 
 ### AI Court
 
-The dedicated `/ai-court` workspace sends the same question and saved case history to Gemini and DeepSeek concurrently. Standard mode gathers two independent opinions and asks the selected judge to produce one ruling. God Mode adds reciprocal cross-review before the ruling and requests the providers' strongest available reasoning/output settings.
+The dedicated `/ai-court` workspace sends the same question and saved case history to any two Gemini, DeepSeek, OpenAI, or Claude models concurrently. Both seats may use the same provider with different models. Model discovery preserves the current selection, and every provider has a custom model-ID option. Standard mode gathers two independent opinions and asks the selected judge to produce one ruling. God Mode adds reciprocal cross-review before the ruling and requests the providers' strongest available reasoning/output settings.
 
 | Mode | Deliberation | Maximum paid calls per question |
 | --- | --- | --- |

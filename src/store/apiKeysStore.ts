@@ -19,7 +19,10 @@ export const useApiKeysStore = create<ApiKeysState>()(
         claude: '',
       },
       models: {
+        gemini: 'gemini-3.1-flash-lite',
         deepseek: 'auto',
+        openai: 'gpt-4.1-mini',
+        claude: 'claude-sonnet-4-5',
       },
       setKey: (provider, key) => set((state) => ({ keys: { ...state.keys, [provider]: key } })),
       setModel: (provider, model) => set((state) => ({ models: { ...state.models, [provider]: model } })),
@@ -27,6 +30,13 @@ export const useApiKeysStore = create<ApiKeysState>()(
     }),
     {
       name: 'query-recon-api-keys',
+      version: 1,
+      migrate: (persisted) => {
+        const state = persisted as ApiKeysState;
+        return state.models?.gemini === 'gemini-2.5-flash'
+          ? { ...state, models: { ...state.models, gemini: 'gemini-3.1-flash-lite' } }
+          : state;
+      },
     }
   )
 );
