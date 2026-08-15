@@ -275,13 +275,14 @@ While a model is working, QueryRecon shows a dedicated reasoning-status animatio
 
 QueryRecon V2 also includes a standalone Hermes command deck for people who want the agent without opening the web application. It has a colored ASCII interface, animated work states, saved conversation context, returned-reasoning display, model discovery, provider/model switching, health checks, and Markdown export. The CLI makes no direct Gemini, DeepSeek, or Ollama calls: Hermes remains the single agent runtime and controls its own tools, skills, memory, provider routing, and permissions.
 
-Start the Hermes gateway, then run the guided CLI setup:
+Start the Hermes gateway, then launch the CLI:
 
 ```powershell
 hermes gateway run
-npm run cli:setup
 npm run cli
 ```
+
+The first launch automatically reads the local endpoint and gateway key from the existing Hermes installation. Use `npm run cli:setup` only when you want to override its model/provider choices; use `/endpoint <local URL>` only for a nonstandard local gateway address.
 
 On Windows, `queryrecon-cli.bat` opens the same interface with one double-click. Setup asks for the local endpoint, gateway API key, provider slug, model ID, and timeout. The endpoint is intentionally restricted to `localhost`, `127.0.0.1`, or `::1`. CLI settings and the last 100 chat messages are saved under `.queryrecon-local/`, which is excluded from Git.
 

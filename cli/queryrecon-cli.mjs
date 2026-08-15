@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { clearLine, cursorTo } from 'node:readline';
 import { createInterface } from 'node:readline/promises';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -41,6 +42,8 @@ function notice(title, body, tone = 'cyan') {
   console.log(`${accent('◆')} ${bold(title)}${body ? `  ${dim(body)}` : ''}`);
 }
 
+const runtimeLabel = config => config.provider ? `${config.provider}/${config.model}` : config.model;
+
 export function safeLocalEndpoint(value) {
   const url = new URL(value.trim().replace(/\/+$/, ''));
   if (!['http:', 'https:'].includes(url.protocol) || !['localhost', '127.0.0.1', '::1', '[::1]'].includes(url.hostname)) throw new Error('Hermes endpoint must use localhost, 127.0.0.1, or ::1.');
@@ -69,6 +72,27 @@ async function readJson(path, fallback) {
 async function saveJson(path, value) {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, JSON.stringify(value, null, 2), { encoding: 'utf8', mode: 0o600 });
+}
+
+export function envValue(source, name) {
+  const match = String(source).match(new RegExp(`^\\s*${name}\\s*=\\s*(.*?)\\s*$`, 'm'));
+  return match ? match[1].replace(/^(['"])(.*)\1$/, '$2') : '';
+}
+
+async function detectHermesConfig() {
+  const home = process.env.HERMES_HOME || (process.platform === 'win32'
+    ? join(process.env.LOCALAPPDATA || homedir(), 'hermes')
+    : join(homedir(), '.hermes'));
+  const source = await readFile(join(home, '.env'), 'utf8').catch(() => '');
+  const host = envValue(source, 'API_SERVER_HOST') || '127.0.0.1';
+  const port = envValue(source, 'API_SERVER_PORT') || '8642';
+  return {
+    endpoint: safeLocalEndpoint(process.env.QUERYRECON_HERMES_ENDPOINT || `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`),
+    apiKey: envValue(source, 'API_SERVER_KEY'),
+    provider: '',
+    model: 'hermes-agent',
+    timeoutMs: 180000,
+  };
 }
 
 function headers(apiKey) {
@@ -148,20 +172,24 @@ async function askSecret(rl, label) {
 async function setup(rl, current = {}) {
   console.log(`\n${line('GATEWAY SETUP')}`);
   notice('Hermes connection', 'Secrets stay in .queryrecon-local and are ignored by Git.');
-  const endpoint = await rl.question(`Endpoint [${current.endpoint || 'http://localhost:8642'}]: `);
-  const apiKey = await askSecret(rl, `Gateway API key${current.apiKey ? ' [Enter to keep saved]' : ''}: `);
-  const provider = await rl.question(`Provider [${current.provider || 'custom'}]: `);
+  const detected = await detectHermesConfig();
+  const endpoint = current.endpoint || detected.endpoint;
+  console.log(`${dim('Endpoint')}  ${green(endpoint)} ${dim('(auto-detected)')}`);
+  const savedKey = current.apiKey || detected.apiKey;
+  const apiKey = savedKey || await askSecret(rl, 'Gateway API key: ');
+  if (savedKey) console.log(`${dim('Gateway key')}  ${green('auto-detected')}`);
+  const provider = await rl.question(`Provider [${current.provider || 'Hermes default'}]: `);
   const model = await rl.question(`Model [${current.model || 'hermes-agent'}]: `);
   const timeout = await rl.question(`Timeout seconds [${Math.round((current.timeoutMs || 180000) / 1000)}]: `);
   const config = {
-    endpoint: safeLocalEndpoint(endpoint || current.endpoint || 'http://localhost:8642'),
-    apiKey: apiKey || current.apiKey || '',
-    provider: (provider || current.provider || 'custom').trim(),
+    endpoint: safeLocalEndpoint(endpoint),
+    apiKey: apiKey || current.apiKey || detected.apiKey,
+    provider: (provider || current.provider || '').trim(),
     model: (model || current.model || 'hermes-agent').trim(),
     timeoutMs: Math.max(10, Number(timeout) || Math.round((current.timeoutMs || 180000) / 1000)) * 1000,
   };
   await saveJson(CONFIG_FILE, config);
-  notice('Configuration saved', `${config.provider}/${config.model}`, 'green');
+  notice('Configuration saved', runtimeLabel(config), 'green');
   return config;
 }
 
@@ -174,6 +202,7 @@ ${line('COMMAND PALETTE')}
   ${cyan('/models')}               List models for the selected provider
   ${cyan('/provider <slug>')}      Change provider for future turns
   ${cyan('/model <id>')}           Change model for future turns
+  ${cyan('/endpoint <local URL>')} Change an unusual local gateway address
   ${cyan('/config')}               Show safe configuration (key remains hidden)
   ${cyan('/new')}                  Start a fresh saved conversation
   ${cyan('/save [path]')}          Export the current conversation as Markdown
@@ -192,7 +221,7 @@ async function exportSession(session, target) {
 function showConfig(config, session) {
   console.log(`${line('ACTIVE LINK')}
   ${dim('Gateway')}   ${cyan(config.endpoint)}
-  ${dim('Provider')}  ${bold(config.provider)}
+  ${dim('Provider')}  ${bold(config.provider || 'Hermes default')}
   ${dim('Model')}     ${violet(config.model)}
   ${dim('Memory')}    ${session.messages.length} saved messages
   ${dim('Key')}       ${config.apiKey ? green('connected') : amber('not configured')}
@@ -206,12 +235,16 @@ async function main() {
   const args = process.argv.slice(2);
   try {
     if (args.includes('--help') || args.includes('-h')) { help(); return; }
-    if (!config || args.includes('--setup')) config = await setup(rl, config || {});
+    if (!config) {
+      const detected = await detectHermesConfig();
+      config = detected.apiKey ? detected : await setup(rl, detected);
+      await saveJson(CONFIG_FILE, config);
+    } else if (args.includes('--setup')) config = await setup(rl, config);
     const promptIndex = args.findIndex(arg => arg === '--prompt' || arg === '-p');
     if (promptIndex >= 0) {
       const prompt = args.slice(promptIndex + 1).join(' ').trim();
       if (!prompt) throw new Error('Add text after --prompt.');
-      const stop = spinner(`Hermes · ${config.provider}/${config.model}`);
+      const stop = spinner(`Hermes · ${runtimeLabel(config)}`);
       try {
         const reply = await callHermes(config, session.messages, prompt); stop();
         if (reply.thinking) console.log(`${dim('\nReturned thinking')}\n${dim(reply.thinking)}\n`);
@@ -240,13 +273,18 @@ async function main() {
         if (!value) { console.log(`Current ${command.slice(1)}: ${config[command.slice(1)]}`); continue; }
         config = { ...config, [command.slice(1)]: value }; await saveJson(CONFIG_FILE, config); notice(`${command.slice(1)} updated`, value, 'green'); continue;
       }
+      if (command === '/endpoint') {
+        const value = rest.join(' ').trim();
+        if (!value) { console.log(`Current endpoint: ${config.endpoint}`); continue; }
+        config = { ...config, endpoint: safeLocalEndpoint(value) }; await saveJson(CONFIG_FILE, config); notice('endpoint updated', config.endpoint, 'green'); continue;
+      }
       if (command === '/models' || command === '/doctor') {
         const stop = spinner('Checking Hermes gateway');
         try { const models = await listModels(config); stop(); notice('Hermes gateway online', `${models.length} model${models.length === 1 ? '' : 's'} detected`, 'green'); console.log(models.length ? models.map((item, index) => `  ${dim(String(index + 1).padStart(2, '0'))}  ${item === config.model ? green(item) : item}`).join('\n') : dim('  No models returned for this provider.')); }
         catch (error) { stop(); notice('Gateway check failed', error.message, 'red'); }
         continue;
       }
-      const stop = spinner(`Hermes is working · ${config.provider}/${config.model}`);
+      const stop = spinner(`Hermes is working · ${runtimeLabel(config)}`);
       try {
         const reply = await callHermes(config, session.messages, input); stop();
         if (reply.thinking) console.log(`${line('RETURNED REASONING')}\n${dim(reply.thinking)}\n`);
