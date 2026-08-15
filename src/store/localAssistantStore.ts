@@ -6,6 +6,7 @@ export interface LocalAssistantMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  thinking?: string;
   createdAt: number;
 }
 
@@ -23,6 +24,7 @@ interface LocalAssistantState {
   hermesEndpoint: string;
   hermesApiKey: string;
   isOpen: boolean;
+  isFullscreen: boolean;
   messages: LocalAssistantMessage[];
   setRuntime: (runtime: LocalAssistantRuntime) => void;
   setEndpoint: (endpoint: string) => void;
@@ -30,6 +32,7 @@ interface LocalAssistantState {
   setHermesEndpoint: (endpoint: string) => void;
   setHermesApiKey: (apiKey: string) => void;
   setOpen: (isOpen: boolean) => void;
+  setFullscreen: (isFullscreen: boolean) => void;
   addMessage: (message: LocalAssistantMessage) => void;
   clearMessages: () => void;
 }
@@ -43,6 +46,7 @@ export const useLocalAssistantStore = create<LocalAssistantState>()(
       hermesEndpoint: 'http://localhost:8642',
       hermesApiKey: '',
       isOpen: false,
+      isFullscreen: false,
       messages: [welcomeMessage()],
       setRuntime: runtime => set({ runtime }),
       setEndpoint: endpoint => set({ endpoint }),
@@ -50,6 +54,7 @@ export const useLocalAssistantStore = create<LocalAssistantState>()(
       setHermesEndpoint: hermesEndpoint => set({ hermesEndpoint }),
       setHermesApiKey: hermesApiKey => set({ hermesApiKey }),
       setOpen: isOpen => set({ isOpen }),
+      setFullscreen: isFullscreen => set({ isFullscreen }),
       addMessage: message => set(state => ({ messages: [...state.messages, message].slice(-50) })),
       clearMessages: () => set({ messages: [welcomeMessage()] }),
     }),

@@ -45,6 +45,20 @@ export function calculateBasicExpression(prompt: string): string | null {
   return `${left} ${operator} ${right} = ${Number(result.toPrecision(12))}`;
 }
 
+export interface AssistantContextMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface LocalAssistantResult {
+  content: string;
+  thinking?: string;
+}
+
+function recentContext(history: AssistantContextMessage[]): AssistantContextMessage[] {
+  return history.slice(-6).map(message => ({ ...message, content: message.content.slice(0, 300) }));
+}
+
 function inferSafeActions(prompt: string): SafeAction[] {
   const normalized = prompt.toLowerCase();
   if (/\b(undo|revert)\b/.test(normalized)) return [{ type: 'undoQuery' }];
@@ -113,7 +127,7 @@ export async function testHermesAgent(endpoint: string, apiKey: string): Promise
   };
 }
 
-export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string): Promise<string> {
+export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = []): Promise<string> {
   const baseURL = normalizeEndpoint(endpoint);
   const response = await fetch(`${baseURL}/v1/chat/completions`, {
     method: 'POST',
@@ -126,6 +140,7 @@ export async function runHermesAgent(prompt: string, endpoint: string, apiKey: s
           role: 'system',
           content: `You are the local Hermes Agent connected to QueryRecon. The visible app route is ${currentPath}. Help with research planning, query design, and the tools enabled in your Hermes installation. Be explicit about actions you actually completed. You cannot directly click QueryRecon UI controls through this API.`,
         },
+        ...recentContext(history),
         { role: 'user', content: prompt },
       ],
     }),
@@ -152,12 +167,12 @@ export async function testLocalAssistant(endpoint: string, model: string): Promi
   };
 }
 
-export async function runLocalAssistant(prompt: string, endpoint: string, model: string, currentPath: string): Promise<string> {
+export async function runLocalAssistant(prompt: string, endpoint: string, model: string, currentPath: string, history: AssistantContextMessage[] = []): Promise<LocalAssistantResult> {
   const calculation = calculateBasicExpression(prompt);
-  if (calculation) return calculation;
+  if (calculation) return { content: calculation };
 
   const actions = inferSafeActions(prompt);
-  if (actions.length) return executeSafeActions(actions);
+  if (actions.length) return { content: executeSafeActions(actions) };
 
   const baseURL = normalizeEndpoint(endpoint);
   const instructions = `You are QueryRecon's private local guide running as MiniCPM5-1B.
@@ -172,8 +187,8 @@ Never invent completed actions, access files, delete data, or execute web search
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: model.trim(),
-      messages: [{ role: 'system', content: instructions }, { role: 'user', content: prompt }],
-      think: false,
+      messages: [{ role: 'system', content: instructions }, ...recentContext(history), { role: 'user', content: prompt }],
+      think: true,
       stream: false,
       options: { temperature: 0.1, num_predict: 256 },
     }),
@@ -181,6 +196,7 @@ Never invent completed actions, access files, delete data, or execute web search
   if (!response.ok) throw new Error(`Ollama returned HTTP ${response.status}: ${(await response.text()).slice(0, 240)}`);
   const data = await response.json();
   const reply = typeof data.message?.content === 'string' ? data.message.content.trim() : '';
+  const thinking = typeof data.message?.thinking === 'string' ? data.message.thinking.trim() : '';
   if (!reply) throw new Error('Ollama returned no assistant message.');
-  return reply;
+  return { content: reply, thinking: thinking || undefined };
 }
