@@ -19,6 +19,9 @@ export function LocalAssistant() {
   const hermesApiKey = useLocalAssistantStore(state => state.hermesApiKey);
   const hermesProvider = useLocalAssistantStore(state => state.hermesProvider);
   const hermesModel = useLocalAssistantStore(state => state.hermesModel);
+  const hermesAutoRoute = useLocalAssistantStore(state => state.hermesAutoRoute);
+  const hermesCheapModel = useLocalAssistantStore(state => state.hermesCheapModel);
+  const hermesPowerfulModel = useLocalAssistantStore(state => state.hermesPowerfulModel);
   const providerKey = useApiKeysStore(state => state.keys[hermesProvider] || '');
   const open = useLocalAssistantStore(state => state.isOpen);
   const fullscreen = useLocalAssistantStore(state => state.isFullscreen);
@@ -81,7 +84,7 @@ export function LocalAssistant() {
     try {
       const assistant = await import('../../core/localAssistant');
       const result = runtime === 'hermes'
-        ? await assistant.runHermesAgent(prompt, hermesEndpoint, hermesApiKey, location.pathname, context, { provider: hermesProvider, model: hermesModel })
+        ? await assistant.runHermesAgent(prompt, hermesEndpoint, hermesApiKey, location.pathname, context, { provider: hermesProvider, model: hermesModel, autoRoute: hermesAutoRoute, cheapModel: hermesCheapModel, powerfulModel: hermesPowerfulModel })
         : await assistant.runLocalAssistant(prompt, endpoint, model, location.pathname, context);
       addMessage({ id: crypto.randomUUID(), role: 'assistant', ...result, createdAt: Date.now() });
     } catch (error) {

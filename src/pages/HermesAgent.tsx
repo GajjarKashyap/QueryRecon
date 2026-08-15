@@ -36,11 +36,17 @@ export default function HermesAgent() {
   const gatewayKey = useLocalAssistantStore(state => state.hermesApiKey);
   const provider = useLocalAssistantStore(state => state.hermesProvider);
   const model = useLocalAssistantStore(state => state.hermesModel);
+  const autoRoute = useLocalAssistantStore(state => state.hermesAutoRoute);
+  const cheapModel = useLocalAssistantStore(state => state.hermesCheapModel);
+  const powerfulModel = useLocalAssistantStore(state => state.hermesPowerfulModel);
   const messages = useLocalAssistantStore(state => state.messages);
   const setEndpoint = useLocalAssistantStore(state => state.setHermesEndpoint);
   const setGatewayKey = useLocalAssistantStore(state => state.setHermesApiKey);
   const setProvider = useLocalAssistantStore(state => state.setHermesProvider);
   const setModel = useLocalAssistantStore(state => state.setHermesModel);
+  const setAutoRoute = useLocalAssistantStore(state => state.setHermesAutoRoute);
+  const setCheapModel = useLocalAssistantStore(state => state.setHermesCheapModel);
+  const setPowerfulModel = useLocalAssistantStore(state => state.setHermesPowerfulModel);
   const setRuntime = useLocalAssistantStore(state => state.setRuntime);
   const addMessage = useLocalAssistantStore(state => state.addMessage);
   const keys = useApiKeysStore(state => state.keys);
@@ -136,7 +142,7 @@ export default function HermesAgent() {
     addMessage({ id: crypto.randomUUID(), role: 'user', content: prompt, createdAt: Date.now() });
     try {
       const { runHermesAgent } = await import('../core/localAssistant');
-      const result = await runHermesAgent(prompt, endpoint, gatewayKey, '/hermes-agent', context, { provider, model });
+      const result = await runHermesAgent(prompt, endpoint, gatewayKey, '/hermes-agent', context, { provider, model, autoRoute, cheapModel, powerfulModel });
       addMessage({ id: crypto.randomUUID(), role: 'assistant', ...result, createdAt: Date.now() });
       setConnected(true);
     } catch (error) {
@@ -211,6 +217,13 @@ export default function HermesAgent() {
                 <Input list="hermes-models" value={model} onChange={event => setModel(event.target.value)} placeholder="Discover or enter an exact model ID" className="h-10" />
                 <datalist id="hermes-models">{availableModels.map(item => <option key={item} value={item} />)}</datalist>
               </label>
+              {provider === 'bedrock' && (
+                <div className="space-y-3 rounded-xl border border-border/70 bg-background/30 p-3">
+                  <label className="flex items-center justify-between gap-3 text-xs font-medium text-foreground"><span>Smart cost routing</span><input type="checkbox" checked={autoRoute} onChange={event => setAutoRoute(event.target.checked)} className="h-4 w-4 accent-[var(--primary)]" /></label>
+                  {autoRoute && <div className="grid gap-3"><label className="grid gap-1.5 text-xs text-muted-foreground">Cheap model for simple questions<Input list="hermes-models" value={cheapModel} onChange={event => setCheapModel(event.target.value)} placeholder="amazon.nova-lite-v1:0" className="h-9" /></label><label className="grid gap-1.5 text-xs text-muted-foreground">Powerful model for complex work<Input list="hermes-models" value={powerfulModel} onChange={event => setPowerfulModel(event.target.value)} placeholder="Enter an enabled Bedrock model ID" className="h-9" /></label></div>}
+                  <p className="text-[0.68rem] leading-5 text-muted-foreground">Short questions use the cheap model. Research, coding, analysis, and multi-step tasks use the powerful model.</p>
+                </div>
+              )}
               <Button variant="outline" className="w-full" onClick={() => void discoverModels()} disabled={checking}>{checking ? <Loader2 className="animate-spin" /> : <RefreshCw />} Detect models automatically</Button>
             </Card>
 

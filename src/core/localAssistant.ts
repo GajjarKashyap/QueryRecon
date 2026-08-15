@@ -60,6 +60,15 @@ export interface LocalAssistantResult {
 export interface HermesRunOptions {
   provider?: string;
   model?: string;
+  autoRoute?: boolean;
+  cheapModel?: string;
+  powerfulModel?: string;
+}
+
+export function chooseHermesModel(prompt: string, fallback: string, options: HermesRunOptions): string {
+  if (!options.autoRoute || options.provider !== 'bedrock') return fallback;
+  const complex = prompt.length > 280 || /\b(analy[sz]e|research|investigate|compare|implement|build|create|debug|fix|refactor|architecture|security|audit|codebase|multi-step|comprehensive|sources?|citations?|files?)\b/i.test(prompt);
+  return (complex ? options.powerfulModel : options.cheapModel)?.trim() || fallback;
 }
 
 interface HermesProviderOption {
@@ -196,12 +205,12 @@ export async function listHermesModels(endpoint: string, apiKey: string, provide
 export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = [], options: HermesRunOptions = {}): Promise<LocalAssistantResult> {
   const baseURL = normalizeEndpoint(endpoint);
   const provider = options.provider?.trim();
-  const model = options.model?.trim();
+  const model = chooseHermesModel(prompt, options.model?.trim() || 'hermes-agent', options);
   const response = await fetch(`${baseURL}/v1/chat/completions`, {
     method: 'POST',
     headers: hermesHeaders(apiKey),
     body: JSON.stringify({
-      model: model || 'hermes-agent',
+      model,
       ...(provider ? { provider } : {}),
       stream: false,
       messages: [

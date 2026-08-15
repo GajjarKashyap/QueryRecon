@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { calculateBasicExpression, extractGeminiModels, extractHermesModels, runHermesAgent, runLocalAssistant } from './localAssistant';
+import { calculateBasicExpression, chooseHermesModel, extractGeminiModels, extractHermesModels, runHermesAgent, runLocalAssistant } from './localAssistant';
 
 describe('calculateBasicExpression', () => {
   it('answers a basic calculation without relying on the model', () => {
@@ -49,6 +49,12 @@ describe('Hermes Agent provider routing', () => {
     expect(extractHermesModels({ providers: [
       { slug: 'bedrock', models: ['amazon.nova-lite-v1:0', { id: 'us.anthropic.claude-sonnet' }] },
     ] }, 'bedrock')).toEqual(['amazon.nova-lite-v1:0', 'us.anthropic.claude-sonnet']);
+  });
+
+  it('routes simple Bedrock prompts cheaply and complex work powerfully', () => {
+    const options = { provider: 'bedrock', autoRoute: true, cheapModel: 'nova-lite', powerfulModel: 'claude-power' };
+    expect(chooseHermesModel('What is SQL?', 'fallback', options)).toBe('nova-lite');
+    expect(chooseHermesModel('Research and compare the project architecture', 'fallback', options)).toBe('claude-power');
   });
 
   it('keeps only Gemini models that can generate content', () => {
