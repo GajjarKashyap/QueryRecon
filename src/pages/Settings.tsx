@@ -35,6 +35,9 @@ export default function Settings() {
   const setHermesApiKey = useLocalAssistantStore(state => state.setHermesApiKey);
   const [testingLocal, setTestingLocal] = useState(false);
   const [localStatus, setLocalStatus] = useState<'valid' | 'missing' | null>(null);
+  const [bedrockKey, setBedrockKey] = useState('');
+  const [bedrockRegion, setBedrockRegion] = useState('us-east-1');
+  const [savingBedrock, setSavingBedrock] = useState(false);
   
   // Sync if global state changes
   useEffect(() => {
@@ -192,6 +195,27 @@ export default function Settings() {
     }
   };
 
+  const saveBedrock = async () => {
+    if (!hermesApiKey.trim()) return toast('Enter the Hermes gateway API key first.', 'error');
+    if (!bedrockKey.trim() || !bedrockRegion.trim()) return toast('Enter the Bedrock long-term key and AWS region.', 'error');
+    setSavingBedrock(true);
+    try {
+      const response = await fetch('/__queryrecon/hermes/bedrock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: hermesEndpoint, gatewayKey: hermesApiKey, bedrockKey, region: bedrockRegion }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not save Bedrock settings.');
+      setBedrockKey('');
+      toast('Bedrock key and region saved to Hermes. Gateway restarted.', 'success');
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not save Bedrock settings.', 'error');
+    } finally {
+      setSavingBedrock(false);
+    }
+  };
+
   // Find all APIs that require a key
   const apiIntegrations = [
     { id: 'gemini', name: 'Google Gemini', desc: 'Core Natural Language parsing' },
@@ -250,6 +274,18 @@ export default function Settings() {
               </div>
               <p className="text-xs text-warning">Hermes can run terminal, file, browser, and other tools enabled in its own configuration. Keep the gateway on localhost, use an API key, restrict CORS to this app, and disable toolsets you do not want.</p>
               <p className="text-xs text-muted-foreground">Hermes API mode supplies Hermes tools and memory. Its API cannot currently receive QueryRecon's in-browser navigation tools, so use direct Ollama mode when you want the assistant to control QueryRecon pages.</p>
+              <div className="rounded-lg border border-border bg-background/60 p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Amazon Bedrock</h4>
+                  <p className="text-xs text-muted-foreground">Add the Bedrock long-term API key directly to local Hermes.</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_auto]">
+                  <Input type="password" value={bedrockKey} onChange={event => setBedrockKey(event.target.value)} placeholder="Bedrock long-term API key" aria-label="Bedrock long-term API key" autoComplete="off" />
+                  <Input value={bedrockRegion} onChange={event => setBedrockRegion(event.target.value)} placeholder="us-east-1" aria-label="AWS region" autoComplete="off" />
+                  <Button onClick={saveBedrock} disabled={savingBedrock}>{savingBedrock ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save & restart'}</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">The key is not saved in browser storage. QueryRecon writes it to Hermes' local <code>.env</code>, which is outside this repository and never uploaded to Git.</p>
+              </div>
             </>
           )}
         </Card>
