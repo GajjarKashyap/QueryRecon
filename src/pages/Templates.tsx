@@ -3,24 +3,28 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, SlidersHorizontal } from 'lucide-react';
 import { BuiltInTemplates } from '../core/templates';
 import { useQueryStore } from '../store/queryStore';
 import { useNavigate } from 'react-router-dom';
 
 export default function Templates() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState('All');
   const { setRootNode } = useQueryStore();
   const navigate = useNavigate();
 
-  const filteredTemplates = BuiltInTemplates.filter(t =>
-    t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const categories = ['All', ...new Set(BuiltInTemplates.map(template => template.category))];
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredTemplates = BuiltInTemplates.filter(template => {
+    const matchesCategory = category === 'All' || template.category === category;
+    const matchesSearch = !normalizedSearch || [template.title, template.description, template.category, ...template.tags]
+      .some(value => value.toLowerCase().includes(normalizedSearch));
+    return matchesCategory && matchesSearch;
+  });
 
-  const useTemplate = (template: typeof BuiltInTemplates[0]) => {
-    setRootNode(JSON.parse(JSON.stringify(template.queryAst)));
+  const applyTemplate = (template: typeof BuiltInTemplates[0]) => {
+    setRootNode(structuredClone(template.queryAst));
     navigate('/builder');
   };
 
@@ -33,14 +37,24 @@ export default function Templates() {
         </div>
       </div>
 
-      <div className="mb-6 relative max-w-md">
-        <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-10 bg-surface border-border"
-          placeholder="Search templates..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="mb-8 flex flex-col gap-4">
+        <div className="relative max-w-xl">
+          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-10 bg-surface border-border"
+            placeholder="Search by purpose, category, or tag"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1" aria-label="Template categories">
+          <SlidersHorizontal className="w-4 h-4 text-muted-foreground shrink-0" />
+          {categories.map(item => (
+            <Button key={item} size="sm" variant={category === item ? 'default' : 'outline'} onClick={() => setCategory(item)}>
+              {item}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -61,12 +75,18 @@ export default function Templates() {
               ))}
             </div>
 
-            <Button className="w-full mt-2" variant="outline" onClick={() => useTemplate(template)}>
+            <Button className="w-full mt-2" variant="outline" onClick={() => applyTemplate(template)}>
               Use Template <ChevronRight className="w-4 h-4 ml-2" />
             </Button>
           </Card>
         ))}
       </div>
+      {filteredTemplates.length === 0 && (
+        <div className="border border-dashed border-border rounded-lg py-16 text-center">
+          <p className="font-medium text-foreground">No matching templates</p>
+          <p className="text-sm text-muted-foreground mt-1">Try a broader term or choose another category.</p>
+        </div>
+      )}
     </div>
   );
 }

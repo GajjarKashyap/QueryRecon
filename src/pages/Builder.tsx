@@ -7,10 +7,21 @@ import { Input } from '../components/ui/input';
 import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Plus, Trash2, Code, FileText, Search, Sparkles, Copy, ExternalLink } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Plus, Trash2, Code, FileText, Search, Sparkles, Copy, ExternalLink, Undo2, Redo2, ShieldAlert } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { parseQueryWithAI } from '../core/ai';
 import { db } from '../store/db';
+import { useApiKeysStore } from '../store/apiKeysStore';
+import { toast } from '../components/ui/toast';
+import { buildSearchUrl, EngineProfiles, type SearchEngine } from '../core/engines';
+import { assessQuery, parseNaturalLanguageQuery } from '../core/queryIntelligence';
+import { WorkActivity } from '../components/ui/work-activity';
+
+const QUERY_BUILD_STEPS = [
+  'Reading your intent',
+  'Mapping search operators',
+  'Validating the query structure'
+];
 
 const NodeView = ({ node }: { node: QueryNode }) => {
   const { updateNode, addNode, removeNode } = useQueryStore();
@@ -109,22 +120,27 @@ const NodeView = ({ node }: { node: QueryNode }) => {
 };
 
 export default function Builder() {
-  const { rootNode, compiledQuery, setRootNode, engine, setEngine } = useQueryStore();
+  const { rootNode, compiledQuery, setRootNode, engine, setEngine, undo, redo, canUndo, canRedo } = useQueryStore();
+  const initialNode: QueryNode = { id: 'root', type: 'group', booleanOp: 'AND', children: [] };
+  const handleClear = () => { setRootNode(initialNode); toast('Query cleared.', 'info'); };
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const apiKeys = useApiKeysStore(state => state.keys);
+  const assessment = useMemo(() => assessQuery(rootNode, engine), [rootNode, engine]);
+  const engineProfile = EngineProfiles[engine];
 
-  const executeSearch = async () => {
+  const executeSearch = useCallback(async () => {
     if (!compiledQuery) return;
-    window.open('https://google.com/search?q=' + encodeURIComponent(compiledQuery), '_blank');
+    window.open(buildSearchUrl(compiledQuery, engine), '_blank', 'noopener,noreferrer');
     await db.history.add({
       id: crypto.randomUUID(),
       executedAt: Date.now(),
       compiledQuery,
       engine
     });
-  };
+  }, [compiledQuery, engine]);
 
   const handleSave = async () => {
     if (!compiledQuery) return;
@@ -145,11 +161,15 @@ export default function Builder() {
     setTimeout(() => setSaved(false), 2000);
   };
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (!compiledQuery) return;
-    navigator.clipboard.writeText(compiledQuery);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(compiledQuery);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast('Clipboard access was blocked. Select the query and copy it manually.', 'error');
+    }
   };
 
   useEffect(() => {
@@ -160,20 +180,22 @@ export default function Builder() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [compiledQuery]);
+  }, [executeSearch]);
 
   const handleGenerateAI = async () => {
     if (!aiPrompt.trim()) return;
-    const key = localStorage.getItem('geminiApiKey');
-    if (!key) return alert('Please set your Gemini API Key in Settings first to use AI features.');
+    const key = apiKeys.gemini;
     setAiLoading(true);
     try {
-      const ast = await parseQueryWithAI(aiPrompt, key);
+      const ast = key
+        ? await parseQueryWithAI(aiPrompt, key)
+        : parseNaturalLanguageQuery(aiPrompt);
       ast.id = 'root';
       setRootNode(ast);
+      if (!key) toast('Built locally. Add a Gemini key for more nuanced prompts.', 'info');
       setAiPrompt('');
-    } catch (err: any) {
-      alert(err.message);
+    } catch (error) {
+      toast(error instanceof Error ? error.message : 'Could not build this query.', 'error');
     } finally {
       setAiLoading(false);
     }
@@ -182,38 +204,63 @@ export default function Builder() {
   return (
     <div className="flex flex-col lg:flex-row h-full w-full">
       <div className="flex-1 flex flex-col overflow-y-auto bg-background">
-                <div className="p-6 border-b border-border flex items-center justify-between">
+        <div className="p-6 border-b border-border flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Query Builder</h1>
             <p className="text-sm text-muted-foreground">Construct advanced OSINT searches visually</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleSave}>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo} aria-label="Undo query edit">
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo} aria-label="Redo query edit">
+              <Redo2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" onClick={handleClear} className="text-muted-foreground hover:text-foreground">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear
+            </Button>
+            <Button variant="outline" onClick={handleSave} disabled={!compiledQuery}>
               <FileText className="w-4 h-4 mr-2" /> {saved ? 'Saved!' : 'Save'}
             </Button>
-            <Button onClick={() => executeSearch()}>
+            <Button onClick={() => executeSearch()} disabled={!compiledQuery}>
               <Search className="w-4 h-4 mr-2" /> Execute
             </Button>
           </div>
         </div>
 
-        <div className="px-6 pt-4 border-b border-border bg-surface flex gap-4">
-          <button onClick={() => setEngine('google')} className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${engine === 'google' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Google</button>
-          <button onClick={() => setEngine('bing')} className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${engine === 'bing' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>Bing</button>
-          <button onClick={() => setEngine('youtube')} className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${engine === 'youtube' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>YouTube</button>
+        <div className="px-6 pt-4 border-b border-border bg-surface flex gap-4" role="tablist" aria-label="Search engine">
+          {Object.values(EngineProfiles).map(profile => (
+            <button
+              key={profile.id}
+              role="tab"
+              aria-selected={engine === profile.id}
+              onClick={() => setEngine(profile.id as SearchEngine)}
+              className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${engine === profile.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            >
+              {profile.label}
+            </button>
+          ))}
         </div>
 
-        <div className="px-6 pt-6 flex gap-2">
-          <Input
-            value={aiPrompt}
-            onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="Describe your target in natural language (e.g. 'Find exposed pdf files on example.com')..."
-            className="flex-1 bg-surface"
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerateAI()}
-          />
-          <Button onClick={handleGenerateAI} disabled={aiLoading || !aiPrompt.trim()}>
-            <Sparkles className="w-4 h-4 mr-2" /> {aiLoading ? 'Thinking...' : 'Generate AST'}
-          </Button>
+        <div className="px-6 pt-6">
+          <div className="flex gap-2">
+            <Input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="Try: Find PDF reports on example.com after 2025-01-01"
+              className="flex-1 bg-surface"
+              onKeyDown={(e) => e.key === 'Enter' && handleGenerateAI()}
+              disabled={aiLoading}
+            />
+            <Button onClick={handleGenerateAI} disabled={aiLoading || !aiPrompt.trim()}>
+              <Sparkles className={`w-4 h-4 mr-2 ${aiLoading ? 'work-activity__spark' : ''}`} /> {aiLoading ? 'Building…' : 'Build query'}
+            </Button>
+          </div>
+          {aiLoading && (
+            <div className="mt-3">
+              <WorkActivity title="Building your query" messages={QUERY_BUILD_STEPS} compact />
+            </div>
+          )}
         </div>
 
         <div className="p-6">
@@ -255,9 +302,28 @@ export default function Builder() {
                 <Copy className="w-4 h-4 mr-2" /> {copied ? 'Copied!' : 'Copy'}
               </Button>
               <Button className="flex-1" variant="secondary" onClick={() => executeSearch()}>
-                <ExternalLink className="w-4 h-4 mr-2" /> Search Google
+                <ExternalLink className="w-4 h-4 mr-2" /> Search {engineProfile.label}
               </Button>
             </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground font-semibold uppercase">Query assessment</span>
+              <Badge variant="outline" className={assessment.risk === 'high' ? 'text-danger border-danger/40' : assessment.risk === 'medium' ? 'text-amber-400 border-amber-400/40' : 'text-emerald-400 border-emerald-400/40'}>
+                {assessment.risk} risk
+              </Badge>
+            </div>
+            <Card className="p-4 bg-surface border-border">
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>{assessment.operatorCount} operator{assessment.operatorCount === 1 ? '' : 's'} detected.</p>
+                  {assessment.warnings.map(warning => <p key={warning}>{warning}</p>)}
+                  {assessment.warnings.length === 0 && <p>This query is scoped and compatible with {engineProfile.label}.</p>}
+                </div>
+              </div>
+            </Card>
           </div>
 
           <div>
@@ -276,6 +342,11 @@ export default function Builder() {
     </div>
   );
 }
+
+
+
+
+
 
 
 

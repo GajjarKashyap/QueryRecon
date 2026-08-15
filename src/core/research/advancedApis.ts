@@ -71,6 +71,14 @@ export const AdvancedApiRegistry: ApiSource[] = [
     description: 'Analyze the target using OpenAI GPT models (requires key in settings)',
     requiresKey: true,
     searchEndpoint: 'https://api.openai.com/v1/chat/completions'
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek Analysis',
+    category: 'AI',
+    description: 'Cost-efficient AI research with DeepSeek V4 (requires key in settings)',
+    requiresKey: true,
+    searchEndpoint: 'https://api.deepseek.com/chat/completions'
   }
 ];
 

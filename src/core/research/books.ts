@@ -1,6 +1,7 @@
+import { fetchWithBackoff } from '../fetcher';
 export async function searchBooks(topic: string): Promise<Array<{title: string, authors: string[], url: string, thumbnail?: string, publishedDate?: string}>> {
   try {
-    const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topic)}&maxResults=10`);
+    const response = await fetchWithBackoff(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(topic)}&maxResults=10`);
     const data = await response.json();
     if (!data.items) return [];
     return data.items.map((item: any) => ({
@@ -15,3 +16,4 @@ export async function searchBooks(topic: string): Promise<Array<{title: string, 
     return [];
   }
 }
+

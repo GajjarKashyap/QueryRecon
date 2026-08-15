@@ -29,6 +29,13 @@ export interface QueryHistory {
   engine: string;
 }
 
+export interface CustomSource {
+  id: string;
+  name: string;
+  icon: string;
+  url?: string;
+}
+
 export interface ResearchProject {
   id: string;
   topic: string;
@@ -37,13 +44,9 @@ export interface ResearchProject {
   selectedSources: string[];
   customSources: CustomSource[];
   status: 'idle' | 'running' | 'complete';
-}
-
-export interface CustomSource {
-  id: string;
-  name: string;
-  icon: string;
-  url?: string;
+  results?: Record<string, any>;
+  activeTab?: string;
+  researchDepth?: 'quick' | 'balanced' | 'deep';
 }
 
 export interface ResearchFinding {
@@ -62,27 +65,94 @@ export interface ResearchFinding {
   metadata?: Record<string, any>;
 }
 
+export interface BoardNode {
+  id: string;
+  type: 'text-note' | 'finding' | 'media' | 'domain' | 'ip' | 'person' | 'table' | 'link' | 'image';
+  position: { x: number; y: number };
+  data: {
+    label: string;
+    url?: string;
+    thumbnail?: string;
+    snippet?: string;
+    color?: string;
+    metadata?: Record<string, any>;
+  };
+}
+
+export interface BoardEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  animated?: boolean;
+  style?: { stroke?: string };
+}
+
+export interface InvestigationBoard {
+  id: string;
+  name: string;
+  projectIds: string[];
+  nodes: BoardNode[];
+  edges: BoardEdge[];
+  viewport: { x: number; y: number; zoom: number };
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CacheEntry {
+  id: string; // usually URL or a hash
+  data: any;
+  timestamp: number;
+  ttl: number;
+}
 export const db = new Dexie('QueryReconDB') as Dexie & {
   sessions: EntityTable<ResearchSession, 'id'>;
   savedQueries: EntityTable<SavedQuery, 'id'>;
   history: EntityTable<QueryHistory, 'id'>;
   researchProjects: EntityTable<ResearchProject, 'id'>;
   findings: EntityTable<ResearchFinding, 'id'>;
+  boards: EntityTable<InvestigationBoard, 'id'>;
+  cache: EntityTable<CacheEntry, 'id'>;
 };
 
 db.version(1).stores({
   sessions: 'id, updatedAt',
   savedQueries: 'id, title, isFavorite, *tags',
-  history: 'id, executedAt'
+  history: 'id, executedAt',
 });
 
 db.version(2).stores({
   sessions: 'id, updatedAt',
   savedQueries: 'id, updatedAt, title, isFavorite, *tags',
-  history: 'id, executedAt'
-});
+  history: 'id, executedAt',
+}).upgrade(async () => {});
 
 db.version(3).stores({
+  sessions: 'id, updatedAt',
+  savedQueries: 'id, updatedAt, title, isFavorite, *tags',
+  history: 'id, executedAt',
   researchProjects: 'id, updatedAt',
-  findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked'
+  findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked',
 });
+
+db.version(4).stores({
+  sessions: 'id, updatedAt',
+  savedQueries: 'id, updatedAt, title, isFavorite, *tags',
+  history: 'id, executedAt',
+  researchProjects: 'id, updatedAt',
+  findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked',
+  boards: 'id, updatedAt, *projectIds',
+}).upgrade(async () => {});
+
+
+
+db.version(5).stores({
+  sessions: 'id, updatedAt',
+  savedQueries: 'id, updatedAt, title, isFavorite, *tags',
+  history: 'id, executedAt',
+  researchProjects: 'id, updatedAt',
+  findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked',
+  boards: 'id, updatedAt, *projectIds',
+  cache: 'id, timestamp'
+}).upgrade(async () => {});
+

@@ -1,6 +1,8 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/layout/Sidebar';
 import { TargetBar } from '../components/layout/TargetBar';
+import { Toaster } from '../components/ui/toast';
+import { LocalAssistant } from '../components/assistant/LocalAssistant';
 
 export default function App() {
   return (
@@ -12,6 +14,9 @@ export default function App() {
           <Outlet />
         </div>
       </main>
+      <LocalAssistant />
+      <Toaster />
     </div>
   )
 }
+

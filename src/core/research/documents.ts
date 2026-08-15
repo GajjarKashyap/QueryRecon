@@ -1,7 +1,9 @@
+import { getFocusedResearchQuery } from './queryExpansion';
+
 export function generateDocumentDorks(topic: string, domain?: string): Array<{label: string, url: string, fileType: string}> {
   const dorks = [];
   const baseQuery = domain ? `site:${domain} ` : '';
-  
+  const focusedQuery = getFocusedResearchQuery(topic);
   const types = [
     { ext: 'pdf', label: 'PDF Documents' },
     { ext: 'docx', label: 'Word Documents' },
@@ -9,12 +11,17 @@ export function generateDocumentDorks(topic: string, domain?: string): Array<{la
     { ext: 'pptx', label: 'Presentations' }
   ];
 
-  for (const t of types) {
+  for (const type of types) {
     dorks.push({
-      label: t.label,
-      url: `https://www.google.com/search?q=${encodeURIComponent(baseQuery + 'filetype:' + t.ext + ' "' + topic + '"')}`,
-      fileType: t.ext
+      label: type.label,
+      url: `https://www.google.com/search?q=${encodeURIComponent(`${baseQuery}filetype:${type.ext} ${focusedQuery}`)}`,
+      fileType: type.ext
     });
   }
+  dorks.push({
+    label: 'Technical & university sources',
+    url: `https://www.google.com/search?q=${encodeURIComponent(`${baseQuery}(site:edu OR site:ac.uk OR site:org) filetype:pdf ${focusedQuery}`)}`,
+    fileType: 'pdf'
+  });
   return dorks;
 }

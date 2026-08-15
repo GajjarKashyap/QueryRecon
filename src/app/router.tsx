@@ -1,5 +1,6 @@
 import Settings from '../pages/Settings';
 import ResearchMode from '../pages/ResearchMode';
+import InvestigationBoard from '../pages/InvestigationBoard';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import Templates from '../pages/Templates';
 import Sessions from '../pages/Sessions';
@@ -31,11 +32,14 @@ export const router = createBrowserRouter([
       { path: "templates", element: <Templates /> },
       { path: "saved", element: <SavedQueries /> },
       { path: "history", element: <History /> },
+      { path: "board", element: <InvestigationBoard /> },
       { path: "operators", element: <Operators /> },
       { path: "settings", element: <Settings /> },
     ]
   }
 ])
+
+
 
 
 

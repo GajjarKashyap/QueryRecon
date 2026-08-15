@@ -6,3 +6,12 @@ dist-ssr/
 .DS_Store
 logs/
 *.log
+.queryrecon-local/
+.reticle/
+.reticle.json
+.claude/commands/reticle.md
+src/reticle-dev.ts
+CLAUDE.md
+.codebase-memory/
+update*.js
+update*.cjs
