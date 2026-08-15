@@ -6,17 +6,18 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { ResearchAnswer } from '../components/research/ResearchAnswer';
 import { toast } from '../components/ui/toast';
 import { runAICourt, type CourtProvider, type CourtResponse } from '../core/ai/court';
 import { db, type AICourtCase, type AICourtTurn } from '../store/db';
 import { useApiKeysStore } from '../store/apiKeysStore';
 
-const PROVIDERS: { id: CourtProvider; label: string }[] = [
-  { id: 'gemini', label: 'Google Gemini' },
-  { id: 'deepseek', label: 'DeepSeek' },
-  { id: 'openai', label: 'OpenAI' },
-  { id: 'claude', label: 'Anthropic Claude' },
+const PROVIDERS: { id: CourtProvider; label: string; description: string; mark: string }[] = [
+  { id: 'gemini', label: 'Google Gemini', description: 'Multimodal Google models', mark: 'G' },
+  { id: 'deepseek', label: 'DeepSeek', description: 'Reasoning and coding models', mark: 'D' },
+  { id: 'openai', label: 'OpenAI', description: 'GPT general-purpose models', mark: 'O' },
+  { id: 'claude', label: 'Anthropic Claude', description: 'Long-context analysis models', mark: 'C' },
 ];
 
 const DEFAULT_MODELS: Record<CourtProvider, string> = {
@@ -38,7 +39,7 @@ type Participant = { provider: CourtProvider; model: string };
 function ModelPicker({ provider, model, discovered, onChange }: { provider: CourtProvider; model: string; discovered: string[]; onChange: (model: string) => void }) {
   const options = [...new Set([...MODEL_PRESETS[provider], ...discovered])];
   const custom = !options.includes(model);
-  return <div className="grid gap-2"><select value={custom ? '__custom__' : model} onChange={event => onChange(event.target.value === '__custom__' ? '' : event.target.value)} className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary"><option value="__custom__">Custom model ID…</option>{options.map(item => <option key={item} value={item}>{item}</option>)}</select>{custom && <Input value={model} onChange={event => onChange(event.target.value)} placeholder="Enter exact model ID" />}</div>;
+  return <div className="grid gap-2"><Select value={custom ? '__custom__' : model} onValueChange={value => onChange(value === '__custom__' ? '' : value || '')}><SelectTrigger className="h-12 w-full border-border bg-background px-3 shadow-sm"><SelectValue>{custom ? 'Custom model ID' : model}</SelectValue></SelectTrigger><SelectContent align="start" className="max-h-80 min-w-[18rem] p-1.5 shadow-xl"><SelectItem value="__custom__" className="min-h-11 px-3"><span className="font-medium text-primary">Custom model ID…</span></SelectItem>{options.map(item => <SelectItem key={item} value={item} className="min-h-11 px-3 font-mono text-xs">{item}</SelectItem>)}</SelectContent></Select>{custom && <div className="rounded-lg border border-primary/25 bg-primary/5 p-2.5"><p className="mb-1.5 text-[0.68rem] font-semibold tracking-wider text-primary uppercase">Exact model ID</p><Input autoFocus value={model} onChange={event => onChange(event.target.value)} placeholder="Example: gemini-3.1-flash-lite" className="h-10 bg-background font-mono text-xs" /></div>}</div>;
 }
 
 function ProviderOpinion({ response, title }: { response?: CourtResponse; title: string }) {
@@ -221,11 +222,12 @@ export default function AICourt() {
             <div className="grid gap-4 lg:grid-cols-2">
               {participants.map((participant, rawIndex) => {
                 const index = rawIndex as 0 | 1;
-                return <div key={index} className="grid gap-3 rounded-xl border border-border/70 bg-background/25 p-4"><p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Court model {index + 1}</p><label className="grid gap-1.5 text-xs font-medium">Provider<select value={participant.provider} onChange={event => updateParticipant(index, { provider: event.target.value as CourtProvider })} className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary">{PROVIDERS.map(provider => <option key={provider.id} value={provider.id}>{provider.label}</option>)}</select></label><label className="grid gap-1.5 text-xs font-medium">Model<ModelPicker provider={participant.provider} model={participant.model} discovered={availableModels[participant.provider] || []} onChange={model => { updateParticipant(index, { model }); setSavedModel(participant.provider, model); }} /></label></div>;
+                const selectedProvider = PROVIDERS.find(item => item.id === participant.provider)!;
+                return <div key={index} className="grid gap-4 rounded-2xl border border-border/80 bg-background/35 p-4 shadow-sm"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Court model {index + 1}</p><p className="mt-1 text-sm text-foreground">Independent opinion {index + 1}</p></div><Badge variant={keys[participant.provider] ? 'secondary' : 'outline'}>{keys[participant.provider] ? 'Key ready' : 'Key needed'}</Badge></div><label className="grid gap-2 text-xs font-medium">Provider<Select value={participant.provider} onValueChange={value => value && updateParticipant(index, { provider: value as CourtProvider })}><SelectTrigger className="h-14 w-full border-border bg-background px-3 shadow-sm"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary">{selectedProvider.mark}</span><SelectValue className="min-w-0"><span className="grid min-w-0 text-left"><span className="truncate font-semibold text-foreground">{selectedProvider.label}</span><span className="truncate text-[0.68rem] font-normal text-muted-foreground">{selectedProvider.description}</span></span></SelectValue></SelectTrigger><SelectContent align="start" className="min-w-[19rem] p-1.5 shadow-xl">{PROVIDERS.map(provider => <SelectItem key={provider.id} value={provider.id} className="min-h-14 px-3"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 font-semibold text-primary">{provider.mark}</span><span className="grid"><span className="font-semibold">{provider.label}</span><span className="text-[0.68rem] font-normal text-muted-foreground">{provider.description}</span></span></SelectItem>)}</SelectContent></Select></label><label className="grid gap-2 text-xs font-medium">Model<ModelPicker provider={participant.provider} model={participant.model} discovered={availableModels[participant.provider] || []} onChange={model => { updateParticipant(index, { model }); setSavedModel(participant.provider, model); }} /></label></div>;
               })}
             </div>
             <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-              <label className="grid gap-1.5 text-xs font-medium">Final judge<select value={judge} onChange={event => setJudge(Number(event.target.value) as 0 | 1)} className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:border-primary"><option value={0}>Model 1 · {participants[0].provider}</option><option value={1}>Model 2 · {participants[1].provider}</option></select></label>
+              <label className="grid gap-2 text-xs font-medium">Final judge<Select value={String(judge)} onValueChange={value => setJudge(Number(value) as 0 | 1)}><SelectTrigger className="h-12 w-full border-border bg-background px-3 shadow-sm"><SelectValue>{`Model ${judge + 1} · ${PROVIDERS.find(item => item.id === participants[judge].provider)?.label}`}</SelectValue></SelectTrigger><SelectContent align="start" className="p-1.5 shadow-xl"><SelectItem value="0" className="min-h-11 px-3">Model 1 · {PROVIDERS.find(item => item.id === participants[0].provider)?.label}</SelectItem><SelectItem value="1" className="min-h-11 px-3">Model 2 · {PROVIDERS.find(item => item.id === participants[1].provider)?.label}</SelectItem></SelectContent></Select></label>
               <Button variant="outline" className="self-end" onClick={() => void detectModels()} disabled={detecting}>{detecting ? <Loader2 className="animate-spin" /> : <RefreshCw />} Detect available models</Button>
             </div>
             <div className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between ${mode === 'god' ? 'border-warning/35 bg-warning/5' : 'border-border/70 bg-background/25'}`}>
