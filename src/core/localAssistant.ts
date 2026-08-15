@@ -29,6 +29,22 @@ function normalizeEndpoint(endpoint: string) {
   return endpoint.trim().replace(/\/+$/, '');
 }
 
+export function calculateBasicExpression(prompt: string): string | null {
+  const match = prompt.match(/^\s*(?:(?:please\s+)?(?:calculate|solve)|what(?:'s|\s+is))?\s*(-?\d+(?:\.\d+)?)\s*([+\-*/×÷])\s*(-?\d+(?:\.\d+)?)\s*\??\s*$/i);
+  if (!match) return null;
+
+  const left = Number(match[1]);
+  const right = Number(match[3]);
+  const operator = match[2];
+  if ((operator === '/' || operator === '÷') && right === 0) return 'Division by zero is undefined.';
+
+  const result = operator === '+' ? left + right
+    : operator === '-' ? left - right
+      : operator === '*' || operator === '×' ? left * right
+        : left / right;
+  return `${left} ${operator} ${right} = ${Number(result.toPrecision(12))}`;
+}
+
 function inferSafeActions(prompt: string): SafeAction[] {
   const normalized = prompt.toLowerCase();
   if (/\b(undo|revert)\b/.test(normalized)) return [{ type: 'undoQuery' }];
@@ -137,12 +153,15 @@ export async function testLocalAssistant(endpoint: string, model: string): Promi
 }
 
 export async function runLocalAssistant(prompt: string, endpoint: string, model: string, currentPath: string): Promise<string> {
+  const calculation = calculateBasicExpression(prompt);
+  if (calculation) return calculation;
+
   const actions = inferSafeActions(prompt);
   if (actions.length) return executeSafeActions(actions);
 
   const baseURL = normalizeEndpoint(endpoint);
   const instructions = `You are QueryRecon's private local guide running as MiniCPM5-1B.
-Help the user operate the application. Keep replies concise.
+Help the user operate the application and answer simple direct questions. Keep replies concise and give the final answer immediately; never merely promise to calculate or explain it.
 Current route: ${currentPath}
 Available pages: dashboard, builder, research, board, templates, saved, sessions, history, operators, settings.
 QueryRecon, not you, will decide whether an app action is permitted.
