@@ -81,7 +81,7 @@ export function LocalAssistant() {
     try {
       const assistant = await import('../../core/localAssistant');
       const result = runtime === 'hermes'
-        ? { content: await assistant.runHermesAgent(prompt, hermesEndpoint, hermesApiKey, location.pathname, context, { provider: hermesProvider, model: hermesModel }) }
+        ? await assistant.runHermesAgent(prompt, hermesEndpoint, hermesApiKey, location.pathname, context, { provider: hermesProvider, model: hermesModel })
         : await assistant.runLocalAssistant(prompt, endpoint, model, location.pathname, context);
       addMessage({ id: crypto.randomUUID(), role: 'assistant', ...result, createdAt: Date.now() });
     } catch (error) {

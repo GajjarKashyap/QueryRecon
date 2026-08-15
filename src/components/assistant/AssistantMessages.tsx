@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { BrainCircuit, Loader2, Sparkles } from 'lucide-react';
+import { BrainCircuit, Sparkles } from 'lucide-react';
 import type { LocalAssistantMessage } from '../../store/localAssistantStore';
 import { ResearchAnswer } from '../research/ResearchAnswer';
+import { AIThinkingIndicator } from './AIThinkingIndicator';
 
 interface AssistantMessagesProps {
   messages: LocalAssistantMessage[];
@@ -21,7 +22,7 @@ export function AssistantMessages({ messages, busy, busyLabel, quickActions = []
   return (
     <div className="space-y-4" aria-live="polite">
       {messages.map(message => (
-        <article key={message.id} className={`flex max-w-[92%] gap-2.5 ${message.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
+        <article key={message.id} className={`flex max-w-[92%] gap-2.5 ${message.role === 'user' ? 'ml-auto flex-row-reverse' : 'ai-message-enter'}`}>
           <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[0.6rem] font-bold ${message.role === 'user' ? 'bg-foreground/10 text-foreground' : 'bg-primary/10 text-primary'}`}>
             {message.role === 'user' ? 'YOU' : <Sparkles className="h-3 w-3" />}
           </span>
@@ -29,7 +30,7 @@ export function AssistantMessages({ messages, busy, busyLabel, quickActions = []
             {message.thinking && (
               <details className="group mb-2 rounded-xl border border-primary/15 bg-primary/5 text-xs text-muted-foreground">
                 <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 font-medium text-foreground marker:content-none">
-                  <BrainCircuit className="h-3.5 w-3.5 text-primary" />
+                  <BrainCircuit className="ai-thinking-icon h-3.5 w-3.5 text-primary" />
                   Thinking
                   <span className="ml-auto text-[0.6rem] uppercase tracking-wider group-open:hidden">Show</span>
                   <span className="ml-auto hidden text-[0.6rem] uppercase tracking-wider group-open:inline">Hide</span>
@@ -54,10 +55,7 @@ export function AssistantMessages({ messages, busy, busyLabel, quickActions = []
         </div>
       )}
       {busy && (
-        <div className="flex items-center gap-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          {busyLabel}
-        </div>
+        <AIThinkingIndicator label={busyLabel} />
       )}
       <div ref={scrollAnchor} />
     </div>

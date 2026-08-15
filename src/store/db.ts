@@ -110,6 +110,7 @@ export interface AICourtTurn {
   id: string;
   question: string;
   mode: 'standard' | 'god';
+  format?: 'solo' | 'court';
   judge: import('../core/ai/court').CourtProvider;
   geminiModel?: string;
   deepseekModel?: string;

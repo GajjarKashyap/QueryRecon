@@ -193,7 +193,7 @@ export async function listHermesModels(endpoint: string, apiKey: string, provide
   return extractHermesModels(await response.json(), provider);
 }
 
-export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = [], options: HermesRunOptions = {}): Promise<string> {
+export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = [], options: HermesRunOptions = {}): Promise<LocalAssistantResult> {
   const baseURL = normalizeEndpoint(endpoint);
   const provider = options.provider?.trim();
   const model = options.model?.trim();
@@ -216,9 +216,19 @@ export async function runHermesAgent(prompt: string, endpoint: string, apiKey: s
   });
   if (!response.ok) throw new Error(`Hermes Agent returned HTTP ${response.status}: ${(await response.text()).slice(0, 240)}`);
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (typeof content !== 'string' || !content.trim()) throw new Error('Hermes Agent returned no assistant message.');
-  return content.trim();
+  const message = data.choices?.[0]?.message || {};
+  let content = typeof message.content === 'string' ? message.content.trim() : '';
+  let thinking = typeof message.reasoning_content === 'string' ? message.reasoning_content.trim() : typeof message.thinking === 'string' ? message.thinking.trim() : '';
+  const tagged = content.match(/<think>([\s\S]*?)<\/think>/i);
+  if (!thinking && tagged) thinking = tagged[1].trim();
+  if (tagged) content = content.replace(tagged[0], '').trim();
+  if (!thinking && content.includes('</think>')) {
+    const [trace, answer] = content.split('</think>', 2);
+    thinking = trace.trim();
+    content = answer.trim();
+  }
+  if (!content) throw new Error('Hermes Agent returned no assistant message.');
+  return { content, thinking: thinking || undefined };
 }
 
 export async function testLocalAssistant(endpoint: string, model: string): Promise<{ models: string[]; modelAvailable: boolean }> {

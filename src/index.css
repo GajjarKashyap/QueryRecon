@@ -40,6 +40,48 @@
   }
 }
 
+@keyframes ai-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ai-orb-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.82); }
+  50% { opacity: 0.8; transform: scale(1.18); }
+}
+
+@keyframes ai-icon-think {
+  0%, 100% { opacity: 0.7; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+@keyframes ai-signal {
+  0%, 100% { transform: scaleY(0.35); opacity: 0.45; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+@keyframes ai-nav-glow {
+  0%, 100% { opacity: 0.35; transform: scaleY(0.55); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+.ai-page-enter { animation: ai-page-enter 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.ai-message-enter { animation: ai-page-enter 180ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.ai-thinking { display: flex; align-items: center; gap: 0.75rem; border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent); border-radius: 0.85rem; background: color-mix(in srgb, var(--primary) 7%, var(--background)); padding: 0.75rem; overflow: hidden; }
+.ai-thinking__orb { position: relative; isolation: isolate; display: flex; width: 2.25rem; height: 2.25rem; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent); border-radius: 0.7rem; color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, var(--background)); }
+.ai-thinking__orb::after { content: ''; position: absolute; inset: -0.35rem; z-index: -1; border-radius: 0.9rem; background: color-mix(in srgb, var(--primary) 16%, transparent); animation: ai-orb-breathe 1.6s cubic-bezier(0.77, 0, 0.175, 1) infinite; }
+.ai-thinking__signal { display: flex; height: 1.25rem; align-items: center; gap: 0.2rem; }
+.ai-thinking__signal i { width: 0.18rem; height: 100%; transform-origin: center; border-radius: 999px; background: var(--primary); animation: ai-signal 0.9s ease-in-out infinite; }
+.ai-thinking__signal i:nth-child(2) { animation-delay: 100ms; }
+.ai-thinking__signal i:nth-child(3) { animation-delay: 200ms; }
+.ai-thinking__signal i:nth-child(4) { animation-delay: 300ms; }
+.ai-thinking-icon, .ai-button-thinking { animation: ai-icon-think 1.2s ease-in-out infinite; }
+.nav-ai-active::after { content: ''; position: absolute; right: 0.3rem; width: 0.18rem; height: 1.1rem; border-radius: 999px; background: var(--primary); box-shadow: 0 0 12px rgba(0, 240, 255, 0.8); animation: ai-nav-glow 1.8s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-page-enter, .ai-message-enter, .ai-thinking__orb::after, .ai-thinking__signal i, .ai-thinking-icon, .ai-button-thinking, .nav-ai-active::after { animation: none; }
+}
+
 @layer base {
   * {
     border-color: var(--border);

@@ -2,12 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { Home, Compass, Layers, Save, History, Settings, Code2, Cpu, Microscope, Network, Bot, Scale } from 'lucide-react';
 
 export default function Sidebar() {
-  const navItems = [
+  const navItems: Array<{ label: string; icon: typeof Home; path: string; ai?: boolean }> = [
     { label: 'Dashboard', icon: Home, path: '/dashboard' },
     { label: 'Query Builder', icon: Cpu, path: '/builder' },
     { label: 'Research Mode', icon: Microscope, path: '/research-mode' },
-    { label: 'Hermes Agent', icon: Bot, path: '/hermes-agent' },
-    { label: 'AI Court', icon: Scale, path: '/ai-court' },
+    { label: 'Hermes Agent', icon: Bot, path: '/hermes-agent', ai: true },
+    { label: 'AI Court', icon: Scale, path: '/ai-court', ai: true },
     { label: 'Investigation Board', icon: Network, path: '/board' },
     { label: 'Templates', icon: Layers, path: '/templates' },
     { label: 'Saved Queries', icon: Save, path: '/saved' },
@@ -16,8 +16,8 @@ export default function Sidebar() {
     { label: 'Operators', icon: Code2, path: '/operators' },
   ];
 
-  const activeClass = 'flex items-center gap-3 px-3 py-2 rounded-md transition-all bg-primary/10 text-primary font-semibold border border-primary/20 shadow-[0_0_12px_rgba(0,200,255,0.12)]';
-  const inactiveClass = 'flex items-center gap-3 px-3 py-2 rounded-md transition-all text-muted-foreground hover:text-foreground hover:bg-surface';
+  const activeClass = 'relative flex items-center gap-3 overflow-hidden px-3 py-2 rounded-md transition-[background-color,color,border-color,transform] duration-150 bg-primary/10 text-primary font-semibold border border-primary/20 shadow-[0_0_12px_rgba(0,200,255,0.12)]';
+  const inactiveClass = 'relative flex items-center gap-3 px-3 py-2 rounded-md transition-[background-color,color,transform] duration-150 text-muted-foreground hover:text-foreground hover:bg-surface active:scale-[0.98]';
 
   return (
     <div className='w-64 bg-sidebar backdrop-blur-xl border-r border-border flex flex-col h-full'>
@@ -34,7 +34,7 @@ export default function Sidebar() {
             key={item.path}
             to={item.path}
             title={item.label}
-            className={({ isActive }) => isActive ? activeClass : inactiveClass}
+            className={({ isActive }) => `${isActive ? activeClass : inactiveClass} ${isActive && item.ai ? 'nav-ai-active' : ''}`}
           >
             <item.icon className='w-5 h-5 shrink-0' />
             <span className='truncate'>{item.label}</span>

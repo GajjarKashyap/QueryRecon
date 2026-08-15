@@ -30,7 +30,7 @@ export interface RunCourtInput {
   history?: CourtHistoryItem[];
   mode: CourtMode;
   judge: 0 | 1;
-  participants: [CourtParticipant, CourtParticipant];
+  participants: CourtParticipant[];
   onProgress?: (label: string) => void | Promise<void>;
   onPartial?: (partial: { opinions?: CourtResponse[]; reviews?: CourtResponse[] }) => void | Promise<void>;
 }
@@ -228,8 +228,16 @@ function totalUsage(responses: CourtResponse[]): CourtUsage {
 
 export async function runAICourt(input: RunCourtInput): Promise<CourtResult> {
   const [first, second] = input.participants;
+  if (!first) throw new Error('Select at least one court model.');
   const context = historyText(input.history);
   const opinionPrompt = `CASE QUESTION\n${input.question}\n\nSHARED CASE HISTORY\n${context}\n\nGive your independent expert opinion before seeing the other model's answer. ${OUTPUT_RULES}`;
+  if (!second) {
+    await input.onProgress?.(`${first.provider} is analyzing the question`);
+    const opinion = await safeCall(first, input, opinionPrompt, 'opinion');
+    if (opinion.error) throw new Error(`${first.provider} failed: ${opinion.error}`);
+    await input.onPartial?.({ opinions: [opinion] });
+    return { opinions: [opinion], reviews: [], verdict: { ...opinion, stage: 'verdict' }, usage: totalUsage([opinion]) };
+  }
   await input.onProgress?.(`${first.provider} and ${second.provider} are forming independent opinions`);
   const opinions = await Promise.all([
     safeCall(first, input, opinionPrompt, 'opinion'),
@@ -250,7 +258,7 @@ export async function runAICourt(input: RunCourtInput): Promise<CourtResult> {
     await input.onPartial?.({ reviews });
   }
 
-  const judge = input.participants[input.judge];
+  const judge = input.participants[input.judge] || first;
   await input.onProgress?.(`${judge.provider} is writing the final ruling`);
   const record = [...opinions, ...reviews]
     .map(item => `${item.provider.toUpperCase()} ${item.stage.toUpperCase()}${item.error ? ' (FAILED)' : ''}:\n${item.error || item.content}`)

@@ -52,7 +52,7 @@ flowchart LR
 | Research Mode | Quick, Balanced, and Deep collection modes with parallel source execution and visible source status |
 | Academic Search | Merged OpenAlex, Crossref, and Semantic Scholar results with deduplication, ranking, caching, and partial-failure recovery |
 | AI Analysis | Gemini, OpenAI, and DeepSeek research answers; DeepSeek model discovery and automatic fallback instead of one hard-coded model |
-| AI Court | Any two Gemini, DeepSeek, OpenAI, or Claude models, optional cross-examination, custom model IDs, one final ruling, reasoning panels, usage metadata, and persistent case URLs |
+| AI Court | Solo one-model analysis or any two Gemini, DeepSeek, OpenAI, or Claude models, optional cross-examination, custom model IDs, one final ruling, reasoning panels, usage metadata, and persistent case URLs |
 | Rich Answers | Markdown, tables, links, code blocks, safe external images, mathematical notation, and Mermaid-compatible content rendering |
 | Investigation Board | Persistent infinite canvas with findings, notes, links, images, editable tables, labeled connections, zoom, pan, and multiple boards |
 | Research Persistence | Automatic IndexedDB checkpoints after completed sources and restoration after navigation or refresh |
@@ -67,7 +67,7 @@ QueryRecon V2 is designed as a connected workspace rather than a collection of i
 
 1. **Build and research:** describe an objective, refine the generated Boolean AST, compile it for a search engine, and send the strategy into Research Mode.
 2. **Collect and verify:** run reference, academic, book, document, video, news, and specialist sources in parallel; keep successful evidence when an individual provider fails; then generate a rich cited synthesis.
-3. **Debate difficult decisions:** send the same question to any two Gemini, DeepSeek, OpenAI, or Claude models in AI Court. Use Standard mode for three calls or God Mode for reciprocal review and a five-call ruling.
+3. **Analyze or debate difficult decisions:** use Solo AI for one model and one paid call, or send the same question to any two Gemini, DeepSeek, OpenAI, or Claude models. Standard Court uses three calls; God Mode adds reciprocal review for a five-call ruling.
 4. **Map the evidence:** move findings into the Investigation Board, add notes, links, images, tables, and labeled relationships, and preserve multiple canvases locally.
 5. **Use local agents:** run MiniCPM5 through Ollama for private QueryRecon guidance and safe in-app actions, or connect Hermes for its independent tools, skills, memory, browser, and terminal workflows.
 6. **Resume later:** research checkpoints, AI Court cases, chats, boards, sessions, queries, history, and preferences persist in the same browser profile.
@@ -181,10 +181,11 @@ Provider model names are not assumed to exist forever. DeepSeek queries the mode
 
 ### AI Court
 
-The dedicated `/ai-court` workspace sends the same question and saved case history to any two Gemini, DeepSeek, OpenAI, or Claude models concurrently. Both seats may use the same provider with different models. Model discovery preserves the current selection, and every provider has a custom model-ID option. Standard mode gathers two independent opinions and asks the selected judge to produce one ruling. God Mode adds reciprocal cross-review before the ruling and requests the providers' strongest available reasoning/output settings.
+The dedicated `/ai-court` workspace supports a one-call **Solo AI** analysis or sends the same question and saved case history to any two Gemini, DeepSeek, OpenAI, or Claude models concurrently. Both court seats may use the same provider with different models. Model discovery preserves the current selection, and every provider has a custom model-ID option. Standard Court gathers two independent opinions and asks the selected judge to produce one ruling. God Mode adds reciprocal cross-review before the ruling and requests the providers' strongest available reasoning/output settings.
 
 | Mode | Deliberation | Maximum paid calls per question |
 | --- | --- | --- |
+| Solo AI | One selected model produces the saved analysis and ruling | 1 |
 | Standard | Two parallel opinions, then one final judge | 3 |
 | God Mode | Two parallel opinions, two cross-reviews, then one final judge | 5 |
 
@@ -265,6 +266,8 @@ hermes gateway run
 ```
 
 Then open **Hermes Agent** in QueryRecon, use `http://localhost:8642` as the endpoint, enter the matching gateway key, and select **Test gateway and discover models**. The floating assistant exposes the same runtime, provider, and discovered-model controls while retaining its saved chat.
+
+While a model is working, QueryRecon shows a dedicated reasoning-status animation in AI Court, the Hermes workspace, and the floating assistant. When Ollama or Hermes explicitly returns a thinking or reasoning field, it is saved with the chat and displayed in a collapsible panel. QueryRecon never fabricates or claims access to hidden reasoning that the provider did not return.
 
 > Hermes can access terminal, filesystem, browser, and other toolsets enabled in its own configuration. Keep the gateway bound to localhost, require an API key, restrict CORS, and disable toolsets you do not want it to use.
 

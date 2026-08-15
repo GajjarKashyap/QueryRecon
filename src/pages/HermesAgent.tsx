@@ -74,7 +74,7 @@ export default function HermesAgent() {
     'hermes config set API_SERVER_ENABLED true',
     'hermes config set API_SERVER_KEY YOUR_GATEWAY_KEY',
     `hermes config set API_SERVER_CORS_ORIGINS ${window.location.origin}`,
-    'hermes gateway',
+    'hermes gateway run',
   ].join('\n'), []);
 
   const chooseProvider = (nextProvider: HermesProvider) => {
@@ -135,8 +135,8 @@ export default function HermesAgent() {
     addMessage({ id: crypto.randomUUID(), role: 'user', content: prompt, createdAt: Date.now() });
     try {
       const { runHermesAgent } = await import('../core/localAssistant');
-      const content = await runHermesAgent(prompt, endpoint, gatewayKey, '/hermes-agent', context, { provider, model });
-      addMessage({ id: crypto.randomUUID(), role: 'assistant', content, createdAt: Date.now() });
+      const result = await runHermesAgent(prompt, endpoint, gatewayKey, '/hermes-agent', context, { provider, model });
+      addMessage({ id: crypto.randomUUID(), role: 'assistant', ...result, createdAt: Date.now() });
       setConnected(true);
     } catch (error) {
       setConnected(false);
@@ -152,7 +152,7 @@ export default function HermesAgent() {
   };
 
   return (
-    <main className="h-full overflow-y-auto bg-background px-4 py-6 sm:px-7 lg:px-10">
+    <main className="ai-page-enter h-full overflow-y-auto bg-background px-4 py-6 sm:px-7 lg:px-10">
       <div className="mx-auto flex min-h-full max-w-[96rem] flex-col gap-6">
         <header className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">

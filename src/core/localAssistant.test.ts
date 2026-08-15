@@ -54,16 +54,17 @@ describe('Hermes Agent provider routing', () => {
 
   it('sends explicit provider and model overrides to Hermes', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      choices: [{ message: { content: 'Hermes completed the task.' } }],
+      choices: [{ message: { content: 'Hermes completed the task.', reasoning_content: 'Checked the available evidence.' } }],
     }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await runHermesAgent('Research SQL', 'http://localhost:8642', 'gateway-key', '/hermes-agent', [], {
+    const result = await runHermesAgent('Research SQL', 'http://localhost:8642', 'gateway-key', '/hermes-agent', [], {
       provider: 'deepseek',
       model: 'deepseek-chat',
     });
 
     const request = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(request).toMatchObject({ provider: 'deepseek', model: 'deepseek-chat' });
+    expect(result).toEqual({ content: 'Hermes completed the task.', thinking: 'Checked the available evidence.' });
   });
 });
