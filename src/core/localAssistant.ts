@@ -66,6 +66,12 @@ interface HermesProviderOption {
   models?: unknown;
 }
 
+interface GeminiModelOption {
+  name?: unknown;
+  baseModelId?: unknown;
+  supportedGenerationMethods?: unknown;
+}
+
 function recentContext(history: AssistantContextMessage[]): AssistantContextMessage[] {
   return history.slice(-6).map(message => ({ ...message, content: message.content.slice(0, 300) }));
 }
@@ -153,6 +159,29 @@ export function extractHermesModels(payload: unknown, provider: string): string[
         ? [((model as { id?: unknown }).id), ((model as { model?: unknown }).model), ((model as { name?: unknown }).name)].find(value => typeof value === 'string')
         : undefined)
     .filter((model): model is string => typeof model === 'string' && model.trim().length > 0);
+}
+
+export function extractGeminiModels(payload: unknown): string[] {
+  const models = payload && typeof payload === 'object' && Array.isArray((payload as { models?: unknown }).models)
+    ? (payload as { models: GeminiModelOption[] }).models
+    : [];
+  return models
+    .filter(model => Array.isArray(model.supportedGenerationMethods) && model.supportedGenerationMethods.includes('generateContent'))
+    .map(model => typeof model.baseModelId === 'string'
+      ? model.baseModelId
+      : typeof model.name === 'string'
+        ? model.name.replace(/^models\//, '')
+        : '')
+    .filter((model, index, all) => model.length > 0 && all.indexOf(model) === index);
+}
+
+export async function listGeminiModels(apiKey: string): Promise<string[]> {
+  if (!apiKey.trim()) throw new Error('Gemini API key is missing from Settings.');
+  const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+    headers: { 'x-goog-api-key': apiKey.trim() },
+  });
+  if (!response.ok) throw new Error(`Gemini model discovery returned HTTP ${response.status}`);
+  return extractGeminiModels(await response.json());
 }
 
 export async function listHermesModels(endpoint: string, apiKey: string, provider: string): Promise<string[]> {

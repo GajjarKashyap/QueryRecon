@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { useLocalAssistantStore } from '../../store/localAssistantStore';
+import { useApiKeysStore } from '../../store/apiKeysStore';
 import { AssistantMessages } from './AssistantMessages';
 
 const QUICK_ACTIONS = ['Open Research Mode', 'Open Query Builder', 'Explain this page'];
@@ -18,6 +19,7 @@ export function LocalAssistant() {
   const hermesApiKey = useLocalAssistantStore(state => state.hermesApiKey);
   const hermesProvider = useLocalAssistantStore(state => state.hermesProvider);
   const hermesModel = useLocalAssistantStore(state => state.hermesModel);
+  const providerKey = useApiKeysStore(state => state.keys[hermesProvider] || '');
   const open = useLocalAssistantStore(state => state.isOpen);
   const fullscreen = useLocalAssistantStore(state => state.isFullscreen);
   const messages = useLocalAssistantStore(state => state.messages);
@@ -38,16 +40,23 @@ export function LocalAssistant() {
     let active = true;
     void import('../../core/localAssistant').then(async assistant => {
       try {
-        const discovered = runtime === 'hermes'
-          ? await assistant.listHermesModels(hermesEndpoint, hermesApiKey, hermesProvider)
-          : (await assistant.testLocalAssistant(endpoint, model)).models;
-        if (active) setAvailableModels(discovered);
+        const discovered = runtime !== 'hermes'
+          ? (await assistant.testLocalAssistant(endpoint, model)).models
+          : hermesProvider === 'gemini' && providerKey
+            ? await assistant.listGeminiModels(providerKey)
+            : hermesProvider === 'deepseek' && providerKey
+              ? await (await import('../../core/research/aiSummary')).listDeepSeekModels(providerKey)
+              : await assistant.listHermesModels(hermesEndpoint, hermesApiKey, hermesProvider);
+        if (active) {
+          setAvailableModels(discovered);
+          if (runtime === 'hermes' && discovered.length > 0 && !discovered.includes(useLocalAssistantStore.getState().hermesModel)) setHermesModel(discovered[0]);
+        }
       } catch {
         if (active) setAvailableModels([]);
       }
     });
     return () => { active = false; };
-  }, [endpoint, hermesApiKey, hermesEndpoint, hermesProvider, model, open, runtime]);
+  }, [endpoint, hermesApiKey, hermesEndpoint, hermesProvider, model, open, providerKey, runtime, setHermesModel]);
 
   const downloadChat = () => {
     const transcript = messages
@@ -120,7 +129,7 @@ export function LocalAssistant() {
               <option value="hermes">Hermes</option>
             </select>
             {runtime === 'hermes' && (
-              <select value={hermesProvider} onChange={event => setHermesProvider(event.target.value as 'custom' | 'gemini' | 'deepseek')} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" aria-label="Hermes provider">
+              <select value={hermesProvider} onChange={event => { setHermesProvider(event.target.value as 'custom' | 'gemini' | 'deepseek'); setHermesModel(''); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" aria-label="Hermes provider">
                 <option value="custom">Local</option>
                 <option value="gemini">Gemini</option>
                 <option value="deepseek">DeepSeek</option>

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { calculateBasicExpression, extractHermesModels, runHermesAgent, runLocalAssistant } from './localAssistant';
+import { calculateBasicExpression, extractGeminiModels, extractHermesModels, runHermesAgent, runLocalAssistant } from './localAssistant';
 
 describe('calculateBasicExpression', () => {
   it('answers a basic calculation without relying on the model', () => {
@@ -43,6 +43,13 @@ describe('Hermes Agent provider routing', () => {
     expect(extractHermesModels({ providers: [
       { slug: 'gemini', models: ['gemini-flash', { id: 'gemini-pro' }] },
     ] }, 'gemini')).toEqual(['gemini-flash', 'gemini-pro']);
+  });
+
+  it('keeps only Gemini models that can generate content', () => {
+    expect(extractGeminiModels({ models: [
+      { name: 'models/gemini-flash', supportedGenerationMethods: ['generateContent'] },
+      { name: 'models/text-embedding', supportedGenerationMethods: ['embedContent'] },
+    ] })).toEqual(['gemini-flash']);
   });
 
   it('sends explicit provider and model overrides to Hermes', async () => {

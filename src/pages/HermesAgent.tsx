@@ -21,6 +21,15 @@ const QUICK_ACTIONS = [
   'Suggest a precise search query and explain each operator.',
 ];
 
+async function discoverCloudModels(provider: Exclude<HermesProvider, 'custom'>, apiKey: string): Promise<string[]> {
+  if (provider === 'gemini') {
+    const { listGeminiModels } = await import('../core/localAssistant');
+    return listGeminiModels(apiKey);
+  }
+  const { listDeepSeekModels } = await import('../core/research/aiSummary');
+  return listDeepSeekModels(apiKey);
+}
+
 export default function HermesAgent() {
   const endpoint = useLocalAssistantStore(state => state.hermesEndpoint);
   const gatewayKey = useLocalAssistantStore(state => state.hermesApiKey);
@@ -47,6 +56,19 @@ export default function HermesAgent() {
     setAvailableModels([]);
   }, [keys, provider]);
 
+  useEffect(() => {
+    if (provider === 'custom' || !keys[provider]) return;
+    let active = true;
+    void discoverCloudModels(provider, keys[provider]).then(discovered => {
+      if (!active) return;
+      setAvailableModels(discovered);
+      if (discovered.length > 0 && !discovered.includes(useLocalAssistantStore.getState().hermesModel)) setModel(discovered[0]);
+    }).catch(() => {
+      if (active) setAvailableModels([]);
+    });
+    return () => { active = false; };
+  }, [keys, provider, setModel]);
+
   const setupCommands = useMemo(() => [
     'hermes model',
     'hermes config set API_SERVER_ENABLED true',
@@ -66,12 +88,20 @@ export default function HermesAgent() {
     setChecking(true);
     try {
       const { listHermesModels, testHermesAgent } = await import('../core/localAssistant');
-      await testHermesAgent(endpoint, gatewayKey);
-      const discovered = await listHermesModels(endpoint, gatewayKey, provider);
+      const cloudKey = provider === 'custom' ? '' : providerKey.trim() || keys[provider] || '';
+      const discovered = provider === 'custom'
+        ? await listHermesModels(endpoint, gatewayKey, provider)
+        : await discoverCloudModels(provider, cloudKey);
       setAvailableModels(discovered);
-      setConnected(true);
       if (!model && discovered[0]) setModel(discovered[0]);
-      toast(discovered.length ? `Found ${discovered.length} ${provider} model${discovered.length === 1 ? '' : 's'}.` : 'Hermes is online, but this provider has no configured models.', discovered.length ? 'success' : 'error');
+      try {
+        await testHermesAgent(endpoint, gatewayKey);
+        setConnected(true);
+        toast(discovered.length ? `Found ${discovered.length} ${provider} model${discovered.length === 1 ? '' : 's'} and connected to Hermes.` : 'Hermes is online, but no compatible models were found.', discovered.length ? 'success' : 'error');
+      } catch {
+        setConnected(false);
+        toast(discovered.length ? `Found ${discovered.length} model${discovered.length === 1 ? '' : 's'} from the saved key. Start Hermes gateway before chatting.` : 'No compatible models were found.', discovered.length ? 'success' : 'error');
+      }
     } catch (error) {
       setConnected(false);
       toast(error instanceof Error ? error.message : 'Could not connect to Hermes Agent.', 'error');
@@ -180,7 +210,7 @@ export default function HermesAgent() {
                 <Input list="hermes-models" value={model} onChange={event => setModel(event.target.value)} placeholder="Discover or enter an exact model ID" className="h-10" />
                 <datalist id="hermes-models">{availableModels.map(item => <option key={item} value={item} />)}</datalist>
               </label>
-              <Button variant="outline" className="w-full" onClick={() => void discoverModels()} disabled={checking}>{checking ? <Loader2 className="animate-spin" /> : <RefreshCw />} Test gateway and discover models</Button>
+              <Button variant="outline" className="w-full" onClick={() => void discoverModels()} disabled={checking}>{checking ? <Loader2 className="animate-spin" /> : <RefreshCw />} Detect models automatically</Button>
             </Card>
 
             <Card className="space-y-4 border-border/80 bg-surface p-5">
