@@ -1,4 +1,5 @@
 node_modules/
+*.gguf
 dist/
 dist-ssr/
 .env

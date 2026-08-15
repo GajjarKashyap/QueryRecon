@@ -192,7 +192,8 @@ PARAMETER stop "<|im_end|>"
 PARAMETER stop "</s>"
 PARAMETER temperature 0.7
 PARAMETER top_p 0.95
-PARAMETER num_ctx 8192
+PARAMETER num_ctx 1024
+PARAMETER num_batch 32
 ```
 
 Then run:
@@ -202,7 +203,9 @@ ollama create minicpm5-1b -f .\Modelfile
 ollama list
 ```
 
-For Hermes workloads, a larger context such as `65536` may be required, but it consumes substantially more RAM than the 8K laptop-friendly configuration.
+The repository also includes `Modelfile.minicpm5-low-memory`. Place the GGUF beside that file, then pass it to `ollama create`. The 1K context and reduced batch are intended for memory-constrained Windows systems. Increase them only after confirming the model loads reliably with `ollama run`.
+
+For Hermes workloads, a larger context may be useful, but it consumes substantially more RAM than this low-memory configuration and requires suitable hardware.
 
 ### Hermes Agent gateway
 
