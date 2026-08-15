@@ -45,6 +45,12 @@ describe('Hermes Agent provider routing', () => {
     ] }, 'gemini')).toEqual(['gemini-flash', 'gemini-pro']);
   });
 
+  it('reads enabled Amazon Bedrock models from the Hermes catalog', () => {
+    expect(extractHermesModels({ providers: [
+      { slug: 'bedrock', models: ['amazon.nova-lite-v1:0', { id: 'us.anthropic.claude-sonnet' }] },
+    ] }, 'bedrock')).toEqual(['amazon.nova-lite-v1:0', 'us.anthropic.claude-sonnet']);
+  });
+
   it('keeps only Gemini models that can generate content', () => {
     expect(extractGeminiModels({ models: [
       { name: 'models/gemini-flash', supportedGenerationMethods: ['generateContent'] },

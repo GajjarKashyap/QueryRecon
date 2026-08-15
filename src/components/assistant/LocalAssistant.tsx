@@ -129,10 +129,11 @@ export function LocalAssistant() {
               <option value="hermes">Hermes</option>
             </select>
             {runtime === 'hermes' && (
-              <select value={hermesProvider} onChange={event => { setHermesProvider(event.target.value as 'custom' | 'gemini' | 'deepseek'); setHermesModel(''); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" aria-label="Hermes provider">
+              <select value={hermesProvider} onChange={event => { setHermesProvider(event.target.value as 'custom' | 'gemini' | 'deepseek' | 'bedrock'); setHermesModel(''); }} className="h-8 rounded-lg border border-border bg-background px-2 text-xs text-foreground" aria-label="Hermes provider">
                 <option value="custom">Local</option>
                 <option value="gemini">Gemini</option>
                 <option value="deepseek">DeepSeek</option>
+                <option value="bedrock">Bedrock</option>
               </select>
             )}
             <select value={runtime === 'hermes' ? hermesModel : model} onChange={event => runtime === 'hermes' ? setHermesModel(event.target.value) : setModel(event.target.value)} className="h-8 min-w-0 rounded-lg border border-border bg-background px-2 text-xs text-foreground" aria-label="Assistant model">

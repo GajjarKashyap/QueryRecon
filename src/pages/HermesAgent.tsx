@@ -13,6 +13,7 @@ const PROVIDERS: Array<{ id: HermesProvider; name: string; note: string; icon: t
   { id: 'custom', name: 'Local model', note: 'Ollama or another local OpenAI-compatible server', icon: Cpu },
   { id: 'gemini', name: 'Gemini', note: 'Google AI Studio models through Hermes', icon: Cloud },
   { id: 'deepseek', name: 'DeepSeek', note: 'DeepSeek cloud models through Hermes', icon: Database },
+  { id: 'bedrock', name: 'Amazon Bedrock', note: 'Nova, Claude, Llama, and other enabled Bedrock models', icon: Cloud },
 ];
 
 const QUICK_ACTIONS = [
@@ -21,7 +22,7 @@ const QUICK_ACTIONS = [
   'Suggest a precise search query and explain each operator.',
 ];
 
-async function discoverCloudModels(provider: Exclude<HermesProvider, 'custom'>, apiKey: string): Promise<string[]> {
+async function discoverCloudModels(provider: 'gemini' | 'deepseek', apiKey: string): Promise<string[]> {
   if (provider === 'gemini') {
     const { listGeminiModels } = await import('../core/localAssistant');
     return listGeminiModels(apiKey);
@@ -52,12 +53,12 @@ export default function HermesAgent() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    setProviderKey(provider === 'custom' ? '' : keys[provider] || '');
+    setProviderKey(provider === 'gemini' || provider === 'deepseek' ? keys[provider] || '' : '');
     setAvailableModels([]);
   }, [keys, provider]);
 
   useEffect(() => {
-    if (provider === 'custom' || !keys[provider]) return;
+    if ((provider !== 'gemini' && provider !== 'deepseek') || !keys[provider]) return;
     let active = true;
     void discoverCloudModels(provider, keys[provider]).then(discovered => {
       if (!active) return;
@@ -88,8 +89,8 @@ export default function HermesAgent() {
     setChecking(true);
     try {
       const { listHermesModels, testHermesAgent } = await import('../core/localAssistant');
-      const cloudKey = provider === 'custom' ? '' : providerKey.trim() || keys[provider] || '';
-      const discovered = provider === 'custom'
+      const cloudKey = provider === 'gemini' || provider === 'deepseek' ? providerKey.trim() || keys[provider] || '' : '';
+      const discovered = provider === 'custom' || provider === 'bedrock'
         ? await listHermesModels(endpoint, gatewayKey, provider)
         : await discoverCloudModels(provider, cloudKey);
       setAvailableModels(discovered);
@@ -120,7 +121,7 @@ export default function HermesAgent() {
   };
 
   const saveProviderKey = () => {
-    if (provider === 'custom') return;
+    if (provider !== 'gemini' && provider !== 'deepseek') return;
     setKey(provider, providerKey.trim());
     toast(`${provider === 'gemini' ? 'Gemini' : 'DeepSeek'} key saved locally for QueryRecon. Run “hermes model” once to register it with Hermes too.`, 'success');
   };
@@ -217,13 +218,14 @@ export default function HermesAgent() {
               <div className="flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" /><h2 className="font-semibold text-foreground">Gateway connection</h2></div>
               <label className="grid gap-1.5 text-xs font-medium text-foreground">Endpoint<Input value={endpoint} onChange={event => { setEndpoint(event.target.value); setConnected(false); }} placeholder="http://localhost:8642" className="h-10" /></label>
               <label className="grid gap-1.5 text-xs font-medium text-foreground">Gateway API key<Input type="password" value={gatewayKey} onChange={event => { setGatewayKey(event.target.value); setConnected(false); }} placeholder="API_SERVER_KEY" className="h-10" /></label>
-              {provider !== 'custom' && (
+              {(provider === 'gemini' || provider === 'deepseek') && (
                 <div className="space-y-2 border-t border-border/70 pt-4">
                   <label className="grid gap-1.5 text-xs font-medium text-foreground">{provider === 'gemini' ? 'Gemini' : 'DeepSeek'} API key<Input type="password" value={providerKey} onChange={event => setProviderKey(event.target.value)} placeholder={provider === 'gemini' ? 'Google AI Studio key' : 'DeepSeek API key'} className="h-10" /></label>
                   <Button variant="secondary" size="sm" onClick={saveProviderKey} disabled={!providerKey.trim()}>Save key for QueryRecon</Button>
                   <p className="text-[0.7rem] leading-5 text-muted-foreground">For security, the gateway does not accept provider secrets in chat requests. Run <code>hermes model</code> once and paste this key into Hermes as well.</p>
                 </div>
               )}
+              {provider === 'bedrock' && <p className="border-t border-border/70 pt-4 text-[0.7rem] leading-5 text-muted-foreground">Bedrock credentials stay in Hermes through <code>AWS_BEARER_TOKEN_BEDROCK</code> or the AWS credential chain. QueryRecon stores only this local gateway key.</p>}
             </Card>
 
             <Card className="space-y-3 border-warning/25 bg-warning/5 p-5">

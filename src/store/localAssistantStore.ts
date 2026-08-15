@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type LocalAssistantRuntime = 'ollama' | 'hermes';
-export type HermesProvider = 'custom' | 'gemini' | 'deepseek';
+export type HermesProvider = 'custom' | 'gemini' | 'deepseek' | 'bedrock';
 export interface LocalAssistantMessage {
   id: string;
   role: 'user' | 'assistant';

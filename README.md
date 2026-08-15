@@ -267,6 +267,8 @@ hermes gateway run
 
 Then open **Hermes Agent** in QueryRecon, use `http://localhost:8642` as the endpoint, enter the matching gateway key, and select **Test gateway and discover models**. The floating assistant exposes the same runtime, provider, and discovered-model controls while retaining its saved chat.
 
+Amazon Bedrock is available as a Hermes inference route in the browser workspace, first-run setup, and floating assistant. Select **Amazon Bedrock**, detect the models enabled for the Hermes AWS account, or enter any exact Bedrock model ID manually. AWS bearer tokens, access keys, profiles, and regions remain in Hermes through `AWS_BEARER_TOKEN_BEDROCK` or the standard AWS SDK credential chain; QueryRecon stores only the local Hermes gateway key and never sends AWS credentials from browser JavaScript.
+
 While a model is working, QueryRecon shows a dedicated reasoning-status animation in AI Court, the Hermes workspace, and the floating assistant. When Ollama or Hermes explicitly returns a thinking or reasoning field, it is saved with the chat and displayed in a collapsible panel. QueryRecon never fabricates or claims access to hidden reasoning that the provider did not return.
 
 > Hermes can access terminal, filesystem, browser, and other toolsets enabled in its own configuration. Keep the gateway bound to localhost, require an API key, restrict CORS, and disable toolsets you do not want it to use.
