@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Compass, Layers, Save, History, Settings, Code2, Cpu, Microscope, Network } from 'lucide-react';
+import { Home, Compass, Layers, Save, History, Settings, Code2, Cpu, Microscope, Network, Bot } from 'lucide-react';
 
 export default function Sidebar() {
   const navItems = [
     { label: 'Dashboard', icon: Home, path: '/dashboard' },
     { label: 'Query Builder', icon: Cpu, path: '/builder' },
     { label: 'Research Mode', icon: Microscope, path: '/research-mode' },
+    { label: 'Hermes Agent', icon: Bot, path: '/hermes-agent' },
     { label: 'Investigation Board', icon: Network, path: '/board' },
     { label: 'Templates', icon: Layers, path: '/templates' },
     { label: 'Saved Queries', icon: Save, path: '/saved' },

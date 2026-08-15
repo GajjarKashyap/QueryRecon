@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type LocalAssistantRuntime = 'ollama' | 'hermes';
+export type HermesProvider = 'custom' | 'gemini' | 'deepseek';
 export interface LocalAssistantMessage {
   id: string;
   role: 'user' | 'assistant';
@@ -23,6 +24,8 @@ interface LocalAssistantState {
   model: string;
   hermesEndpoint: string;
   hermesApiKey: string;
+  hermesProvider: HermesProvider;
+  hermesModel: string;
   isOpen: boolean;
   isFullscreen: boolean;
   messages: LocalAssistantMessage[];
@@ -31,6 +34,8 @@ interface LocalAssistantState {
   setModel: (model: string) => void;
   setHermesEndpoint: (endpoint: string) => void;
   setHermesApiKey: (apiKey: string) => void;
+  setHermesProvider: (provider: HermesProvider) => void;
+  setHermesModel: (model: string) => void;
   setOpen: (isOpen: boolean) => void;
   setFullscreen: (isFullscreen: boolean) => void;
   addMessage: (message: LocalAssistantMessage) => void;
@@ -45,6 +50,8 @@ export const useLocalAssistantStore = create<LocalAssistantState>()(
       model: 'minicpm5-1b',
       hermesEndpoint: 'http://localhost:8642',
       hermesApiKey: '',
+      hermesProvider: 'custom',
+      hermesModel: 'minicpm5-1b',
       isOpen: false,
       isFullscreen: false,
       messages: [welcomeMessage()],
@@ -53,6 +60,8 @@ export const useLocalAssistantStore = create<LocalAssistantState>()(
       setModel: model => set({ model }),
       setHermesEndpoint: hermesEndpoint => set({ hermesEndpoint }),
       setHermesApiKey: hermesApiKey => set({ hermesApiKey }),
+      setHermesProvider: hermesProvider => set({ hermesProvider }),
+      setHermesModel: hermesModel => set({ hermesModel }),
       setOpen: isOpen => set({ isOpen }),
       setFullscreen: isFullscreen => set({ isFullscreen }),
       addMessage: message => set(state => ({ messages: [...state.messages, message].slice(-50) })),

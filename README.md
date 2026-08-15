@@ -166,7 +166,7 @@ QueryRecon supports **OpenBMB MiniCPM5-1B Q4_K_M** as a compact local guide. Dir
 - Create or replace a Query Builder query from a user request.
 - Undo the latest query edit.
 
-In-app actions are determined and validated by QueryRecon rather than trusting arbitrary model-generated tool calls. MiniCPM chat runs with thinking disabled for faster local responses. The assistant receives no filesystem, shell, deletion, or arbitrary network tool from QueryRecon.
+In-app actions are determined and validated by QueryRecon rather than trusting arbitrary model-generated tool calls. When Ollama returns a thinking trace, QueryRecon shows it in a collapsed panel. The assistant receives no filesystem, shell, deletion, or arbitrary network tool from QueryRecon. Chat history is saved locally, reused as bounded context, and can be exported as Markdown.
 
 Default configuration:
 
@@ -205,20 +205,13 @@ ollama list
 
 The repository also includes `Modelfile.minicpm5-low-memory`. Place the GGUF beside that file, then pass it to `ollama create`. The 1K context and reduced batch are intended for memory-constrained Windows systems. Increase them only after confirming the model loads reliably with `ollama run`.
 
-For Hermes workloads, a larger context may be useful, but it consumes substantially more RAM than this low-memory configuration and requires suitable hardware.
+Hermes Agent requires a context window of at least 64K for its full tool loop. The low-memory MiniCPM profile above is therefore intended for QueryRecon's direct assistant, not Hermes.
 
 ### Hermes Agent gateway
 
-Hermes mode connects QueryRecon to the local Hermes OpenAI-compatible API. Hermes supplies its own tools, skills, memory, and permission model; QueryRecon does not silently convert Hermes text into browser actions.
+Hermes mode connects QueryRecon to the local Hermes OpenAI-compatible API. Hermes supplies its own tools, skills, memory, and permission model; QueryRecon does not silently convert Hermes text into browser actions. The dedicated `/hermes-agent` workspace can discover the models configured in Hermes and send real per-request provider/model overrides for a local custom endpoint, Gemini, or DeepSeek.
 
-Configure Hermes to use MiniCPM through Ollama:
-
-```yaml
-model:
-  provider: custom
-  default: minicpm5-1b
-  base_url: http://localhost:11434/v1
-```
+Run `hermes model` first. Choose **Custom endpoint** for local Ollama, **Google AI Studio** for Gemini, or **DeepSeek** for the DeepSeek API. Hermes stores provider credentials in its own `~/.hermes/.env`; provider secrets are not sent inside QueryRecon chat requests.
 
 Enable the Hermes API server in `%USERPROFILE%\.hermes\.env`:
 
@@ -234,7 +227,7 @@ Start the gateway:
 hermes gateway
 ```
 
-Then select **Hermes Agent — local gateway** in QueryRecon Settings and use `http://localhost:8642` as the endpoint.
+Then open **Hermes Agent** in QueryRecon, use `http://localhost:8642` as the endpoint, enter the matching gateway key, and select **Test gateway and discover models**. The floating assistant exposes the same runtime, provider, and discovered-model controls while retaining its saved chat.
 
 > Hermes can access terminal, filesystem, browser, and other toolsets enabled in its own configuration. Keep the gateway bound to localhost, require an API key, restrict CORS, and disable toolsets you do not want it to use.
 
@@ -294,6 +287,7 @@ src/
 | `/dashboard` | Start a query or enter a research workflow |
 | `/builder` | Build and assess the visual query AST |
 | `/research-mode` | Run multi-source research and generate evidence-aware answers |
+| `/hermes-agent` | Configure and chat with Hermes using local, Gemini, or DeepSeek inference |
 | `/board` | Organize findings on the investigation canvas |
 | `/templates` | Browse and apply reusable query templates |
 | `/saved` | Reopen saved queries |

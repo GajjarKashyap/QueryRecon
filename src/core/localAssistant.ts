@@ -5,6 +5,7 @@ const APP_ROUTES = {
   dashboard: '/dashboard',
   builder: '/builder',
   research: '/research-mode',
+  hermes: '/hermes-agent',
   board: '/board',
   templates: '/templates',
   saved: '/saved',
@@ -55,6 +56,16 @@ export interface LocalAssistantResult {
   thinking?: string;
 }
 
+export interface HermesRunOptions {
+  provider?: string;
+  model?: string;
+}
+
+interface HermesProviderOption {
+  slug?: unknown;
+  models?: unknown;
+}
+
 function recentContext(history: AssistantContextMessage[]): AssistantContextMessage[] {
   return history.slice(-6).map(message => ({ ...message, content: message.content.slice(0, 300) }));
 }
@@ -69,6 +80,7 @@ function inferSafeActions(prompt: string): SafeAction[] {
 
   const aliases: Array<[AssistantPage, RegExp]> = [
     ['research', /\bresearch(?: mode| page)?\b/],
+    ['hermes', /\bhermes(?: agent| page)?\b/],
     ['builder', /\b(?:query )?builder\b/],
     ['board', /\b(?:investigation board|crazy wall|board)\b/],
     ['templates', /\btemplates?\b/],
@@ -127,13 +139,39 @@ export async function testHermesAgent(endpoint: string, apiKey: string): Promise
   };
 }
 
-export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = []): Promise<string> {
+export function extractHermesModels(payload: unknown, provider: string): string[] {
+  const providers = payload && typeof payload === 'object' && Array.isArray((payload as { providers?: unknown }).providers)
+    ? (payload as { providers: HermesProviderOption[] }).providers
+    : [];
+  const exact = providers.find(row => row.slug === provider);
+  const row = exact ?? (provider === 'custom' ? providers.find(item => typeof item.slug === 'string' && item.slug.startsWith('custom')) : undefined);
+  if (!row || !Array.isArray(row.models)) return [];
+  return row.models
+    .map(model => typeof model === 'string'
+      ? model
+      : model && typeof model === 'object'
+        ? [((model as { id?: unknown }).id), ((model as { model?: unknown }).model), ((model as { name?: unknown }).name)].find(value => typeof value === 'string')
+        : undefined)
+    .filter((model): model is string => typeof model === 'string' && model.trim().length > 0);
+}
+
+export async function listHermesModels(endpoint: string, apiKey: string, provider: string): Promise<string[]> {
   const baseURL = normalizeEndpoint(endpoint);
+  const response = await fetch(`${baseURL}/api/model/options`, { headers: hermesHeaders(apiKey) });
+  if (!response.ok) throw new Error(`Hermes model discovery returned HTTP ${response.status}`);
+  return extractHermesModels(await response.json(), provider);
+}
+
+export async function runHermesAgent(prompt: string, endpoint: string, apiKey: string, currentPath: string, history: AssistantContextMessage[] = [], options: HermesRunOptions = {}): Promise<string> {
+  const baseURL = normalizeEndpoint(endpoint);
+  const provider = options.provider?.trim();
+  const model = options.model?.trim();
   const response = await fetch(`${baseURL}/v1/chat/completions`, {
     method: 'POST',
     headers: hermesHeaders(apiKey),
     body: JSON.stringify({
-      model: 'hermes-agent',
+      model: model || 'hermes-agent',
+      ...(provider ? { provider } : {}),
       stream: false,
       messages: [
         {
@@ -178,7 +216,7 @@ export async function runLocalAssistant(prompt: string, endpoint: string, model:
   const instructions = `You are QueryRecon's private local guide running as MiniCPM5-1B.
 Help the user operate the application and answer simple direct questions. Keep replies concise and give the final answer immediately; never merely promise to calculate or explain it.
 Current route: ${currentPath}
-Available pages: dashboard, builder, research, board, templates, saved, sessions, history, operators, settings.
+Available pages: dashboard, builder, research, Hermes Agent, board, templates, saved, sessions, history, operators, settings.
 QueryRecon, not you, will decide whether an app action is permitted.
 Never invent completed actions, access files, delete data, or execute web searches. Phrase action replies as an intention; QueryRecon will append verified results.`;
 

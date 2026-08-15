@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { calculateBasicExpression, runLocalAssistant } from './localAssistant';
+import { calculateBasicExpression, extractHermesModels, runHermesAgent, runLocalAssistant } from './localAssistant';
 
 describe('calculateBasicExpression', () => {
   it('answers a basic calculation without relying on the model', () => {
@@ -33,5 +33,30 @@ describe('runLocalAssistant', () => {
     const request = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(request.think).toBe(true);
     expect(request.messages).toContainEqual({ role: 'assistant', content: 'SQL is used for relational databases.' });
+  });
+});
+
+describe('Hermes Agent provider routing', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('reads both string and object models from the Hermes catalog', () => {
+    expect(extractHermesModels({ providers: [
+      { slug: 'gemini', models: ['gemini-flash', { id: 'gemini-pro' }] },
+    ] }, 'gemini')).toEqual(['gemini-flash', 'gemini-pro']);
+  });
+
+  it('sends explicit provider and model overrides to Hermes', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: 'Hermes completed the task.' } }],
+    }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await runHermesAgent('Research SQL', 'http://localhost:8642', 'gateway-key', '/hermes-agent', [], {
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+    });
+
+    const request = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+    expect(request).toMatchObject({ provider: 'deepseek', model: 'deepseek-chat' });
   });
 });

@@ -8,6 +8,7 @@ import Builder from '../pages/Builder';
 import SavedQueries from '../pages/SavedQueries';
 import History from '../pages/History';
 import Operators from '../pages/Operators';
+import HermesAgent from '../pages/HermesAgent';
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import Dashboard from "../pages/Dashboard"
 import App from "./App"
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: "history", element: <History /> },
       { path: "board", element: <InvestigationBoard /> },
       { path: "operators", element: <Operators /> },
+      { path: "hermes-agent", element: <HermesAgent /> },
       { path: "settings", element: <Settings /> },
     ]
   }
