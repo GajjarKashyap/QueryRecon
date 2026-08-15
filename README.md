@@ -148,6 +148,10 @@ Boards support multiple saved workspaces, draggable positioning, labeled edges, 
 
 ## AI and local-agent support
 
+### One-click Windows setup
+
+Double-click `setup-queryrecon.bat`. The guided setup asks for Gemini, an optional DeepSeek key, and model IDs; configures Hermes; generates a separate gateway password; starts Hermes and QueryRecon; and imports everything into the canonical `http://localhost:5173` browser profile. Secrets are masked, written only to Hermes and `.queryrecon-local/`, transferred through a random one-use localhost token, and excluded from Git.
+
 ### Cloud AI providers
 
 | Provider | Use in QueryRecon |
