@@ -8,6 +8,7 @@
     "cli": "node cli/queryrecon-cli.mjs",
     "cli:setup": "node cli/queryrecon-cli.mjs --setup",
     "test:cli": "node --test cli/queryrecon-cli.test.mjs",
+    "hermes:repair": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/repair-hermes-workspace.ps1",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

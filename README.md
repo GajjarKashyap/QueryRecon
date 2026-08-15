@@ -300,6 +300,8 @@ Useful commands inside the command deck:
 
 For a single non-interactive request, use `npm run cli -- --prompt "your task"`. Set the standard `NO_COLOR` environment variable to disable ANSI color; animation automatically stays off when output is redirected or the terminal is non-interactive.
 
+If Hermes reports a Windows `.hermes-tmp` write failure or writes outside the repository, double-click `repair-hermes-workspace.bat` (or run `npm run hermes:repair`). It pins Hermes to this repository, selects Git for Windows Bash for file operations, and restarts the gateway without changing provider keys.
+
 ## Architecture
 
 QueryRecon is a client-side React application with separated UI, domain, research, and persistence layers.

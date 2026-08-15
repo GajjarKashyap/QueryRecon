@@ -33,7 +33,8 @@ function New-Token {
 }
 
 function Set-EnvValue([string]$path, [string]$name, [string]$value) {
-  $lines = if (Test-Path -LiteralPath $path) { [Collections.Generic.List[string]](Get-Content -LiteralPath $path) } else { [Collections.Generic.List[string]]::new() }
+  $lines = [Collections.Generic.List[string]]::new()
+  if (Test-Path -LiteralPath $path) { Get-Content -LiteralPath $path | ForEach-Object { $lines.Add($_) } }
   $replacement = "$name=$value"
   $found = $false
   for ($index = 0; $index -lt $lines.Count; $index++) {
@@ -68,6 +69,10 @@ if (-not $envPath) { $envPath = Join-Path $env:LOCALAPPDATA 'hermes\.env' }
 New-Item -ItemType Directory -Path (Split-Path -Parent $envPath) -Force | Out-Null
 Set-EnvValue $envPath 'GOOGLE_API_KEY' $geminiKey
 if ($deepSeekKey) { Set-EnvValue $envPath 'DEEPSEEK_API_KEY' $deepSeekKey }
+$gitBash = Join-Path $env:ProgramFiles 'Git\bin\bash.exe'
+if (-not (Test-Path -LiteralPath $gitBash)) { throw 'Git Bash was not found. Install Git for Windows, then run setup again.' }
+Set-EnvValue $envPath 'HERMES_GIT_BASH_PATH' $gitBash
+Set-EnvValue $envPath 'TERMINAL_CWD' $projectDir
 
 $settings = @{
   'model.default' = $geminiModel
