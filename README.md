@@ -284,7 +284,7 @@ npm run cli
 
 The first launch automatically reads the local endpoint and gateway key from the existing Hermes installation. Use `npm run cli:setup` only when you want to override its model/provider choices; use `/endpoint <local URL>` only for a nonstandard local gateway address.
 
-On Windows, `queryrecon-cli.bat` opens the same interface with one double-click. Setup asks for the local endpoint, gateway API key, provider slug, model ID, and timeout. The endpoint is intentionally restricted to `localhost`, `127.0.0.1`, or `::1`. CLI settings and the last 100 chat messages are saved under `.queryrecon-local/`, which is excluded from Git.
+On Windows, `queryrecon-cli.bat` opens the same interface with one double-click. The CLI reads the endpoint and gateway key through the local Hermes configuration without printing either secret; optional setup only asks for provider, model, and timeout overrides. Endpoints are intentionally restricted to `localhost`, `127.0.0.1`, or `::1`. CLI settings and the last 100 chat messages are saved under `.queryrecon-local/`, which is excluded from Git.
 
 Useful commands inside the command deck:
 
