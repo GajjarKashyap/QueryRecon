@@ -59,6 +59,18 @@ flowchart LR
 | Query Library | Built-in templates, saved queries, sessions, history, operator reference, and workspace import/export |
 | Local Assistant | MiniCPM5-1B through Ollama for private guidance and deterministic in-app navigation/query actions |
 | Hermes Agent | Optional local gateway for Hermes tools, skills, and memory with explicit endpoint, key, CORS, and permission controls |
+| Guided Onboarding | First-run tour, optional cloud-key and model setup, Ollama/Hermes configuration, secure skip, and return to the originally requested page |
+
+## Complete investigation workflows
+
+QueryRecon V2 is designed as a connected workspace rather than a collection of isolated tools:
+
+1. **Build and research:** describe an objective, refine the generated Boolean AST, compile it for a search engine, and send the strategy into Research Mode.
+2. **Collect and verify:** run reference, academic, book, document, video, news, and specialist sources in parallel; keep successful evidence when an individual provider fails; then generate a rich cited synthesis.
+3. **Debate difficult decisions:** send the same question to any two Gemini, DeepSeek, OpenAI, or Claude models in AI Court. Use Standard mode for three calls or God Mode for reciprocal review and a five-call ruling.
+4. **Map the evidence:** move findings into the Investigation Board, add notes, links, images, tables, and labeled relationships, and preserve multiple canvases locally.
+5. **Use local agents:** run MiniCPM5 through Ollama for private QueryRecon guidance and safe in-app actions, or connect Hermes for its independent tools, skills, memory, browser, and terminal workflows.
+6. **Resume later:** research checkpoints, AI Court cases, chats, boards, sessions, queries, history, and preferences persist in the same browser profile.
 
 ## Visual Query Builder
 
@@ -152,6 +164,10 @@ Boards support multiple saved workspaces, draggable positioning, labeled edges, 
 
 Double-click `setup-queryrecon.bat`. The guided setup asks for Gemini, an optional DeepSeek key, and model IDs; configures Hermes; generates a separate gateway password; starts Hermes and QueryRecon; and imports everything into the canonical `http://localhost:5173` browser profile. Secrets are masked, written only to Hermes and `.queryrecon-local/`, transferred through a random one-use localhost token, and excluded from Git.
 
+### First-run welcome and setup
+
+Every new browser profile opens `/welcome` before the main application. The three-step guide explains Research Mode, Query Builder, AI Court, Investigation Board, MiniCPM, and Hermes; accepts optional Gemini, DeepSeek, OpenAI, and Claude keys with preferred model IDs; and configures either Ollama or Hermes. Users can skip without entering a key. Completion is stored only in that browser profile, and a direct link returns to its original destination after setup.
+
 ### Cloud AI providers
 
 | Provider | Use in QueryRecon |
@@ -159,6 +175,7 @@ Double-click `setup-queryrecon.bat`. The guided setup asks for Gemini, an option
 | Google Gemini | Natural-language query parsing and research summarization |
 | OpenAI | Advanced research analysis |
 | DeepSeek | Cost-aware research analysis with runtime model discovery, ranking, and fallback |
+| Anthropic Claude | Long-context analysis and an additional AI Court participant or judge |
 
 Provider model names are not assumed to exist forever. DeepSeek queries the models available to the supplied key and can select an appropriate available model instead of relying only on a hard-coded identifier.
 
@@ -244,7 +261,7 @@ API_SERVER_CORS_ORIGINS=http://localhost:5173
 Start the gateway:
 
 ```powershell
-hermes gateway
+hermes gateway run
 ```
 
 Then open **Hermes Agent** in QueryRecon, use `http://localhost:8642` as the endpoint, enter the matching gateway key, and select **Test gateway and discover models**. The floating assistant exposes the same runtime, provider, and discovered-model controls while retaining its saved chat.
@@ -304,9 +321,11 @@ src/
 
 | Route | Purpose |
 | --- | --- |
+| `/welcome` | First-run product tour and optional provider/local-agent setup |
 | `/dashboard` | Start a query or enter a research workflow |
 | `/builder` | Build and assess the visual query AST |
 | `/research-mode` | Run multi-source research and generate evidence-aware answers |
+| `/ai-court` | Compare any two supported AI providers or models and save the final ruling |
 | `/hermes-agent` | Configure and chat with Hermes using local, Gemini, or DeepSeek inference |
 | `/board` | Organize findings on the investigation canvas |
 | `/templates` | Browse and apply reusable query templates |
@@ -335,6 +354,8 @@ npm run dev
 ```
 
 Open the local URL printed by Vite, normally `http://localhost:5173`.
+
+On first launch, QueryRecon opens the welcome setup. API keys are optional; configure only the providers you intend to call. The welcome flow can also be reopened directly at `http://localhost:5173/welcome`.
 
 ### Production build
 

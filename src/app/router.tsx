@@ -10,36 +10,49 @@ import History from '../pages/History';
 import Operators from '../pages/Operators';
 import HermesAgent from '../pages/HermesAgent';
 import AICourt from '../pages/AICourt';
-import { createBrowserRouter, Navigate } from "react-router-dom"
+import Welcome from '../pages/Welcome';
+import { createBrowserRouter, Navigate, redirect, type LoaderFunctionArgs } from "react-router-dom"
 import Dashboard from "../pages/Dashboard"
 import App from "./App"
+import { ONBOARDING_COMPLETE_KEY } from '../core/onboarding';
+
+function firstRunLoader({ request }: LoaderFunctionArgs) {
+  const url = new URL(request.url);
+  if (url.pathname !== '/welcome' && !localStorage.getItem(ONBOARDING_COMPLETE_KEY)) {
+    return redirect(`/welcome?next=${encodeURIComponent(url.pathname + url.search)}`);
+  }
+  return null;
+}
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <App />,
+    loader: firstRunLoader,
     errorElement: <ErrorBoundary />,
     children: [
       {
-        index: true,
-        element: <Navigate to="/dashboard" replace />
+        path: 'welcome',
+        element: <Welcome />,
       },
       {
-        path: "dashboard",
-        element: <Dashboard />
+        path: "/",
+        element: <App />,
+        children: [
+          { index: true, element: <Navigate to="/dashboard" replace /> },
+          { path: "dashboard", element: <Dashboard /> },
+          { path: "sessions", element: <Sessions /> },
+          { path: "builder", element: <Builder /> },
+          { path: "research-mode", element: <ResearchMode /> },
+          { path: "templates", element: <Templates /> },
+          { path: "saved", element: <SavedQueries /> },
+          { path: "history", element: <History /> },
+          { path: "board", element: <InvestigationBoard /> },
+          { path: "operators", element: <Operators /> },
+          { path: "hermes-agent", element: <HermesAgent /> },
+          { path: "ai-court", element: <AICourt /> },
+          { path: "ai-court/:caseId", element: <AICourt /> },
+          { path: "settings", element: <Settings /> },
+        ]
       },
-      { path: "sessions", element: <Sessions /> },
-      { path: "builder", element: <Builder /> },
-      { path: "research-mode", element: <ResearchMode /> },
-      { path: "templates", element: <Templates /> },
-      { path: "saved", element: <SavedQueries /> },
-      { path: "history", element: <History /> },
-      { path: "board", element: <InvestigationBoard /> },
-      { path: "operators", element: <Operators /> },
-      { path: "hermes-agent", element: <HermesAgent /> },
-      { path: "ai-court", element: <AICourt /> },
-      { path: "ai-court/:caseId", element: <AICourt /> },
-      { path: "settings", element: <Settings /> },
     ]
   }
 ])
