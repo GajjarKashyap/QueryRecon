@@ -9,9 +9,15 @@ It is designed for researchers who need more than a text box: build a search as 
 [![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
+[![Version](https://img.shields.io/badge/version-2.0.0-7c3aed)](https://github.com/GajjarKashyap/QueryRecon/releases/tag/v2.0.0)
 [![Local first](https://img.shields.io/badge/storage-local--first-16a34a)](#privacy-and-security-model)
 
 > QueryRecon was previously named GoogleDorker. The project has grown from a dork builder into a broader research and investigation workspace.
+
+## Versions
+
+- **V2.0.0 (current):** Advanced research mode, investigation board, multi-provider AI, DeepSeek support, MiniCPM5 and Hermes local assistants, persistent workspaces, and the upgraded interface.
+- **V1.0.0 (legacy):** The original QueryRecon release remains available from the [`v1.0.0`](https://github.com/GajjarKashyap/QueryRecon/tree/v1.0.0) tag.
 
 ## Why QueryRecon?
 
