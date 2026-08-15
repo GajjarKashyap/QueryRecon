@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "cli": "node cli/queryrecon-cli.mjs",
+    "cli:setup": "node cli/queryrecon-cli.mjs --setup",
+    "test:cli": "node --test cli/queryrecon-cli.test.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

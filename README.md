@@ -271,6 +271,35 @@ While a model is working, QueryRecon shows a dedicated reasoning-status animatio
 
 > Hermes can access terminal, filesystem, browser, and other toolsets enabled in its own configuration. Keep the gateway bound to localhost, require an API key, restrict CORS, and disable toolsets you do not want it to use.
 
+### Hermes-only command-line interface
+
+QueryRecon V2 also includes a standalone Hermes command deck for people who want the agent without opening the web application. It has a colored ASCII interface, animated work states, saved conversation context, returned-reasoning display, model discovery, provider/model switching, health checks, and Markdown export. The CLI makes no direct Gemini, DeepSeek, or Ollama calls: Hermes remains the single agent runtime and controls its own tools, skills, memory, provider routing, and permissions.
+
+Start the Hermes gateway, then run the guided CLI setup:
+
+```powershell
+hermes gateway run
+npm run cli:setup
+npm run cli
+```
+
+On Windows, `queryrecon-cli.bat` opens the same interface with one double-click. Setup asks for the local endpoint, gateway API key, provider slug, model ID, and timeout. The endpoint is intentionally restricted to `localhost`, `127.0.0.1`, or `::1`. CLI settings and the last 100 chat messages are saved under `.queryrecon-local/`, which is excluded from Git.
+
+Useful commands inside the command deck:
+
+| Command | Action |
+| --- | --- |
+| `/doctor` | Check the Hermes gateway and discover models |
+| `/models` | Show models available for the active provider |
+| `/provider <slug>` | Switch the Hermes provider override |
+| `/model <id>` | Switch the Hermes model override |
+| `/new` | Clear saved conversation context |
+| `/save [path]` | Export the conversation and returned reasoning as Markdown |
+| `/setup` | Reconfigure the local gateway connection |
+| `/exit` | Save and close the CLI |
+
+For a single non-interactive request, use `npm run cli -- --prompt "your task"`. Set the standard `NO_COLOR` environment variable to disable ANSI color; animation automatically stays off when output is redirected or the terminal is non-interactive.
+
 ## Architecture
 
 QueryRecon is a client-side React application with separated UI, domain, research, and persistence layers.
@@ -318,6 +347,8 @@ src/
 │   └── localAssistant.ts
 ├── pages/               Dashboard, Builder, Research, Board, Settings, libraries
 └── store/               Zustand stores and Dexie database
+cli/
+└── queryrecon-cli.mjs   Hermes-only terminal command deck
 ```
 
 ## Application pages
@@ -372,6 +403,7 @@ npm run preview
 ```bash
 npm run lint
 npm run build
+npm run test:cli
 ```
 
 ## Configuration
