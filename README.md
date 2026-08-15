@@ -16,7 +16,7 @@ It is designed for researchers who need more than a text box: build a search as 
 
 ## Versions
 
-- **V2.0.0 (current):** Advanced research mode, investigation board, multi-provider AI, DeepSeek support, MiniCPM5 and Hermes local assistants, persistent workspaces, and the upgraded interface.
+- **V2.0.0 (current):** Advanced research mode, AI Court, investigation board, multi-provider AI, DeepSeek support, MiniCPM5 and Hermes local assistants, persistent workspaces, and the upgraded interface.
 - **V1.0.0 (legacy):** The original QueryRecon release remains available from the [`v1.0.0`](https://github.com/GajjarKashyap/QueryRecon/tree/v1.0.0) tag.
 
 ## Why QueryRecon?
@@ -52,6 +52,7 @@ flowchart LR
 | Research Mode | Quick, Balanced, and Deep collection modes with parallel source execution and visible source status |
 | Academic Search | Merged OpenAlex, Crossref, and Semantic Scholar results with deduplication, ranking, caching, and partial-failure recovery |
 | AI Analysis | Gemini, OpenAI, and DeepSeek research answers; DeepSeek model discovery and automatic fallback instead of one hard-coded model |
+| AI Court | Parallel Gemini and DeepSeek opinions, optional cross-examination, one final ruling, provider reasoning panels, usage metadata, and persistent case URLs |
 | Rich Answers | Markdown, tables, links, code blocks, safe external images, mathematical notation, and Mermaid-compatible content rendering |
 | Investigation Board | Persistent infinite canvas with findings, notes, links, images, editable tables, labeled connections, zoom, pan, and multiple boards |
 | Research Persistence | Automatic IndexedDB checkpoints after completed sources and restoration after navigation or refresh |
@@ -156,6 +157,21 @@ Boards support multiple saved workspaces, draggable positioning, labeled edges, 
 | DeepSeek | Cost-aware research analysis with runtime model discovery, ranking, and fallback |
 
 Provider model names are not assumed to exist forever. DeepSeek queries the models available to the supplied key and can select an appropriate available model instead of relying only on a hard-coded identifier.
+
+### AI Court
+
+The dedicated `/ai-court` workspace sends the same question and saved case history to Gemini and DeepSeek concurrently. Standard mode gathers two independent opinions and asks the selected judge to produce one ruling. God Mode adds reciprocal cross-review before the ruling and requests the providers' strongest available reasoning/output settings.
+
+| Mode | Deliberation | Maximum paid calls per question |
+| --- | --- | --- |
+| Standard | Two parallel opinions, then one final judge | 3 |
+| God Mode | Two parallel opinions, two cross-reviews, then one final judge | 5 |
+
+Every case receives an ID and is saved to IndexedDB before the first provider request. QueryRecon then checkpoints opinions, reviews, failures, final rulings, model IDs, timing, and reported token usage. Cases have addressable `/ai-court/:caseId` routes and survive navigation or refresh in the same browser profile.
+
+Court answers support GitHub-flavored Markdown tables, code blocks, safe HTTPS-linked images, and constrained bar charts. Models can request a chart with a fenced `chart` block containing JSON fields for `title`, `labels`, `values`, and optional `unit`. Provider-supplied reasoning is shown in a collapsed panel when the API returns it. QueryRecon does not expose hidden reasoning that a provider does not return, and model consensus is not a guarantee of factual correctness.
+
+God Mode is never enabled automatically. It intentionally favors depth over cost and can make up to five billable calls, so review each provider's current pricing and account limits before using it.
 
 ### Private MiniCPM5 assistant through Ollama
 

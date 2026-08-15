@@ -6,6 +6,7 @@ const APP_ROUTES = {
   builder: '/builder',
   research: '/research-mode',
   hermes: '/hermes-agent',
+  court: '/ai-court',
   board: '/board',
   templates: '/templates',
   saved: '/saved',
@@ -87,6 +88,7 @@ function inferSafeActions(prompt: string): SafeAction[] {
   const aliases: Array<[AssistantPage, RegExp]> = [
     ['research', /\bresearch(?: mode| page)?\b/],
     ['hermes', /\bhermes(?: agent| page)?\b/],
+    ['court', /\b(?:ai court|court page|multi-model court)\b/],
     ['builder', /\b(?:query )?builder\b/],
     ['board', /\b(?:investigation board|crazy wall|board)\b/],
     ['templates', /\btemplates?\b/],

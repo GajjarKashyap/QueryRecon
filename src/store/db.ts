@@ -105,6 +105,33 @@ export interface CacheEntry {
   timestamp: number;
   ttl: number;
 }
+
+export interface AICourtTurn {
+  id: string;
+  question: string;
+  mode: 'standard' | 'god';
+  judge: 'gemini' | 'deepseek';
+  geminiModel: string;
+  deepseekModel: string;
+  status: 'running' | 'complete' | 'failed';
+  progress?: string;
+  createdAt: number;
+  completedAt?: number;
+  opinions: import('../core/ai/court').CourtResponse[];
+  reviews: import('../core/ai/court').CourtResponse[];
+  verdict?: import('../core/ai/court').CourtResponse;
+  usage?: import('../core/ai/court').CourtUsage;
+  error?: string;
+}
+
+export interface AICourtCase {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  turns: AICourtTurn[];
+}
+
 export const db = new Dexie('QueryReconDB') as Dexie & {
   sessions: EntityTable<ResearchSession, 'id'>;
   savedQueries: EntityTable<SavedQuery, 'id'>;
@@ -113,6 +140,7 @@ export const db = new Dexie('QueryReconDB') as Dexie & {
   findings: EntityTable<ResearchFinding, 'id'>;
   boards: EntityTable<InvestigationBoard, 'id'>;
   cache: EntityTable<CacheEntry, 'id'>;
+  courtCases: EntityTable<AICourtCase, 'id'>;
 };
 
 db.version(1).stores({
@@ -154,5 +182,16 @@ db.version(5).stores({
   findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked',
   boards: 'id, updatedAt, *projectIds',
   cache: 'id, timestamp'
+}).upgrade(async () => {});
+
+db.version(6).stores({
+  sessions: 'id, updatedAt',
+  savedQueries: 'id, updatedAt, title, isFavorite, *tags',
+  history: 'id, executedAt',
+  researchProjects: 'id, updatedAt',
+  findings: 'id, projectId, sourceType, discoveredAt, *tags, isBookmarked',
+  boards: 'id, updatedAt, *projectIds',
+  cache: 'id, timestamp',
+  courtCases: 'id, updatedAt, createdAt'
 }).upgrade(async () => {});
 

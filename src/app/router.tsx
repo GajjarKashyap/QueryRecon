@@ -9,6 +9,7 @@ import SavedQueries from '../pages/SavedQueries';
 import History from '../pages/History';
 import Operators from '../pages/Operators';
 import HermesAgent from '../pages/HermesAgent';
+import AICourt from '../pages/AICourt';
 import { createBrowserRouter, Navigate } from "react-router-dom"
 import Dashboard from "../pages/Dashboard"
 import App from "./App"
@@ -36,6 +37,8 @@ export const router = createBrowserRouter([
       { path: "board", element: <InvestigationBoard /> },
       { path: "operators", element: <Operators /> },
       { path: "hermes-agent", element: <HermesAgent /> },
+      { path: "ai-court", element: <AICourt /> },
+      { path: "ai-court/:caseId", element: <AICourt /> },
       { path: "settings", element: <Settings /> },
     ]
   }
