@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { clearLine, cursorTo } from 'node:readline';
 import { createInterface } from 'node:readline/promises';
 import { homedir } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -79,6 +80,17 @@ export function envValue(source, name) {
   return match ? match[1].replace(/^(['"])(.*)\1$/, '$2') : '';
 }
 
+function hermesSetting(name) {
+  const candidates = process.platform === 'win32'
+    ? [join(process.env.LOCALAPPDATA || '', 'hermes', 'hermes-agent', 'bin', 'hermes.exe'), join(process.env.LOCALAPPDATA || '', 'hermes', 'hermes-agent', 'venv', 'Scripts', 'hermes.exe'), 'hermes.exe']
+    : ['hermes'];
+  for (const executable of candidates) {
+    try { return execFileSync(executable, ['config', 'get', name], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
+    catch { /* Try the next installed Hermes location. */ }
+  }
+  return '';
+}
+
 async function detectHermesConfig() {
   const home = process.env.HERMES_HOME || (process.platform === 'win32'
     ? join(process.env.LOCALAPPDATA || homedir(), 'hermes')
@@ -88,7 +100,7 @@ async function detectHermesConfig() {
   const port = envValue(source, 'API_SERVER_PORT') || '8642';
   return {
     endpoint: safeLocalEndpoint(process.env.QUERYRECON_HERMES_ENDPOINT || `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`),
-    apiKey: envValue(source, 'API_SERVER_KEY'),
+    apiKey: envValue(source, 'API_SERVER_KEY') || hermesSetting('gateway.api_server.key'),
     provider: '',
     model: 'hermes-agent',
     timeoutMs: 180000,
@@ -259,7 +271,9 @@ async function main() {
     showConfig(config, session);
     console.log(`${dim('  Type')} ${cyan('/help')} ${dim('for commands. Your conversation is saved automatically.')}\n`);
     while (true) {
-      const input = (await rl.question(`${cyan('YOU')} ${dim('>')} `)).trim();
+      let input;
+      try { input = (await rl.question(`${cyan('YOU')} ${dim('>')} `)).trim(); }
+      catch (error) { if (error?.code === 'ERR_USE_AFTER_CLOSE') break; throw error; }
       if (!input) continue;
       const [command, ...rest] = input.split(/\s+/);
       if (command === '/exit' || command === '/quit') break;
